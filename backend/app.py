@@ -34,11 +34,12 @@ CORS(app)
 
 _ssl_ca = os.environ.get("DB_SSL_CA")
 DB_CONFIG = {
-    "host":     os.environ.get("DB_HOST", "localhost"),
-    "port":     int(os.environ.get("DB_PORT", 3307)),
-    "user":     os.environ.get("DB_USER", "vinifera"),
-    "password": os.environ.get("DB_PASSWORD", "vinifera123"),
-    "database": os.environ.get("DB_NAME", "vinifera_app"),
+    "host":            os.environ.get("DB_HOST", "localhost"),
+    "port":            int(os.environ.get("DB_PORT", 3307)),
+    "user":            os.environ.get("DB_USER", "vinifera"),
+    "password":        os.environ.get("DB_PASSWORD", "vinifera123"),
+    "database":        os.environ.get("DB_NAME", "vinifera_app"),
+    "connect_timeout": 10,
     **( {"ssl_ca": _ssl_ca, "ssl_verify_cert": True, "ssl_verify_identity": True} if _ssl_ca else {} ),
 }
 
