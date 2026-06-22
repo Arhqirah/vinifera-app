@@ -1,0 +1,18 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: vinifera_db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: vinifera123
+      MARIADB_DATABASE: vinifera_app
+      MARIADB_USER: vinifera
+      MARIADB_PASSWORD: vinifera123
+    ports:
+      - "3307:3306"   # 3307 on host so it doesn't clash with WashWorld
+    volumes:
+      - vinifera_db_data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+volumes:
+  vinifera_db_data:

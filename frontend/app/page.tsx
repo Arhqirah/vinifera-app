@@ -1,0 +1,626 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import {
+  Wine, Sparkles, Flower2, GlassWater, Coffee, Gift, Flame,
+  Heart, PartyPopper, UtensilsCrossed, Grape, Droplets,
+  ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
+  Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
+  Moon, Sun,
+} from "lucide-react";
+
+type Lang = "da" | "en";
+type Theme = "light" | "dark";
+
+const T = {
+  da: {
+    navLabel:          "Vinfinder",
+    heroTitle:         "Find den perfekte vin",
+    heroSub:           "Fortæl os anledningen og hvad du er til — vi finder frem til det bedste fra vores sortiment.",
+    sectionType:       "Type",
+    sectionOccasion:   "Anledning",
+    sectionFlavor:     "Smagsprofil",
+    sectionSearch:     "Søg på navn (valgfri)",
+    searchPlaceholder: "f.eks. Krebs, Château...",
+    sectionPrice:      "Maks pris (valgfri)",
+    pricePlaceholder:  "f.eks. 250",
+    priceUnit:         "DKK",
+    findBtn:           "Find vine",
+    searching:         "Søger...",
+    resultsCount:      (n: number) => `${n} forslag til dig`,
+    searchAgain:       "Søg igen",
+    loadMore:          "Vis flere vine",
+    loadingMore:       "Henter flere...",
+    buyBtn:            "Køb i webshoppen",
+    recLabel:          "Vores anbefaling",
+    noteLabel:         "Smagsnote",
+    emptyTitle:        "Ingen vine fundet",
+    emptySub:          "Prøv at justere smagsprofilen eller hæv prisgrænsen.",
+    errorMsg:          "Kunne ikke hente forslag. Tjek at backend kører.",
+    readMore:          "Læs mere",
+    readLess:          "Vis mindre",
+    footerSub:         "Vinspecialisten i Birkerød",
+    wineTypes: [
+      { label: "Alle",        value: null },
+      { label: "Rødvin",      value: "Rødvin" },
+      { label: "Hvidvin",     value: "Hvidvin" },
+      { label: "Rosévin",     value: "Rosévin" },
+      { label: "Mousserende", value: "Mousserende" },
+      { label: "Portvin",     value: "Portvin" },
+      { label: "Dessertvin",  value: "Dessertvin" },
+      { label: "Sherry",      value: "Sherry" },
+      { label: "Hedvin",      value: "Hedvin" },
+      { label: "Gin",         value: "Gin" },
+      { label: "Whisky",      value: "Whisky" },
+      { label: "Spiritus",    value: "Spiritus" },
+      { label: "Alkoholfri",  value: "Alkoholfri" },
+    ],
+    occasions: [
+      "Hverdag", "Fest", "Gave", "Romantisk middag", "Grillaften",
+      "Aperitif", "Arbejdsmiddag", "Møde", "Fødselsdag",
+      "Julefrokost", "Bryllup", "Filmaften", "Picnic",
+    ],
+    flavors: [
+      { label: "Frugtig", desc: "Frisk og bærpræget",  key: "frugtig" },
+      { label: "Let",     desc: "Delikat og elegant",  key: "let" },
+      { label: "Fyldig",  desc: "Kraftig og rund",     key: "fyldig" },
+      { label: "Tør",     desc: "Ingen restsødme",     key: "tør" },
+      { label: "Sød",     desc: "Blød sødme",          key: "sød" },
+      { label: "Frisk",   desc: "Sprød syre",          key: "frisk" },
+    ],
+  },
+  en: {
+    navLabel:          "Wine Finder",
+    heroTitle:         "Find the perfect wine",
+    heroSub:           "Tell us the occasion and what you're in the mood for — we'll find the best from our selection.",
+    sectionType:       "Type",
+    sectionOccasion:   "Occasion",
+    sectionFlavor:     "Flavor profile",
+    sectionSearch:     "Search by name (optional)",
+    searchPlaceholder: "e.g. Krebs, Château...",
+    sectionPrice:      "Max price (optional)",
+    pricePlaceholder:  "e.g. 250",
+    priceUnit:         "DKK",
+    findBtn:           "Find wines",
+    searching:         "Searching...",
+    resultsCount:      (n: number) => `${n} suggestion${n !== 1 ? "s" : ""} for you`,
+    searchAgain:       "Search again",
+    loadMore:          "Show more wines",
+    loadingMore:       "Loading more...",
+    buyBtn:            "Buy in the webshop",
+    recLabel:          "Our recommendation",
+    noteLabel:         "Tasting note",
+    emptyTitle:        "No wines found",
+    emptySub:          "Try adjusting the flavor profile or increasing the price limit.",
+    errorMsg:          "Could not fetch suggestions. Check that the backend is running.",
+    readMore:          "Read more",
+    readLess:          "Show less",
+    footerSub:         "Wine specialist in Birkerød",
+    wineTypes: [
+      { label: "All",           value: null },
+      { label: "Red wine",      value: "Rødvin" },
+      { label: "White wine",    value: "Hvidvin" },
+      { label: "Rosé",          value: "Rosévin" },
+      { label: "Sparkling",     value: "Mousserende" },
+      { label: "Port wine",     value: "Portvin" },
+      { label: "Dessert wine",  value: "Dessertvin" },
+      { label: "Sherry",        value: "Sherry" },
+      { label: "Fortified",     value: "Hedvin" },
+      { label: "Gin",           value: "Gin" },
+      { label: "Whisky",        value: "Whisky" },
+      { label: "Spirits",       value: "Spiritus" },
+      { label: "Alcohol-free",  value: "Alkoholfri" },
+    ],
+    occasions: [
+      "Everyday", "Party", "Gift", "Romantic dinner", "BBQ night",
+      "Aperitif", "Business lunch", "Meeting", "Birthday",
+      "Christmas lunch", "Wedding", "Movie night", "Picnic",
+    ],
+    flavors: [
+      { label: "Fruity",      desc: "Fresh and berry-forward", key: "frugtig" },
+      { label: "Light",       desc: "Delicate and elegant",    key: "let" },
+      { label: "Full-bodied", desc: "Rich and round",          key: "fyldig" },
+      { label: "Dry",         desc: "No residual sweetness",   key: "tør" },
+      { label: "Sweet",       desc: "Soft sweetness",          key: "sød" },
+      { label: "Crisp",       desc: "Vibrant acidity",         key: "frisk" },
+    ],
+  },
+} as const;
+
+const OCCASION_ICONS = [
+  UtensilsCrossed, PartyPopper, Gift, Heart, Flame,
+  Coffee, Briefcase, Users, Cake, Snowflake, Star, Tv2, TreePine,
+];
+
+const TYPE_ICONS = [
+  Wine, Wine, GlassWater, Flower2, Sparkles,
+  Droplets, Grape, Coffee, Grape, GlassWater, Coffee, Droplets, GlassWater,
+];
+
+type WineItem = {
+  id: number;
+  title: string;
+  producer: string;
+  country: string;
+  wine_type: string;
+  price_dkk: number;
+  image_url: string;
+  product_url: string;
+  description: string;
+  reason: string | null;
+};
+
+function chipStyle(active: boolean): React.CSSProperties {
+  return {
+    display: "inline-flex", alignItems: "center", gap: 6,
+    padding: "8px 14px", borderRadius: 8,
+    border: `1.5px solid ${active ? "var(--primary-bg)" : "var(--border)"}`,
+    backgroundColor: active ? "var(--primary-bg)" : "var(--chip-bg)",
+    color: active ? "var(--primary-text)" : "var(--chip-text)",
+    fontSize: 14, fontWeight: 500, cursor: "pointer",
+  };
+}
+
+export default function VineFinderPage() {
+  const [lang,        setLang]        = useState<Lang>("da");
+  const [theme,       setTheme]       = useState<Theme>("light");
+  const [wineType,    setWineType]    = useState<string | null>(null);
+  const [occasionIdx, setOccasionIdx] = useState(0);
+  const [flavorIdx,   setFlavorIdx]   = useState(0);
+  const [maxPrice,    setMaxPrice]    = useState<string>("");
+  const [nameSearch,  setNameSearch]  = useState<string>("");
+  const [loading,     setLoading]     = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [picks,       setPicks]       = useState<WineItem[]>([]);
+  const [hasMore,     setHasMore]     = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  const [searched,    setSearched]    = useState(false);
+  const [searchCount, setSearchCount] = useState(0);
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (searchCount > 0) {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [searchCount]);
+
+  const t = T[lang];
+
+  async function fetchWines(excludeIds: number[] = [], append = false) {
+    if (append) setLoadingMore(true);
+    else { setLoading(true); setError(null); }
+
+    try {
+      let newPicks: WineItem[];
+
+      if (nameSearch.trim()) {
+        const params = new URLSearchParams({ q: nameSearch.trim() });
+        if (wineType) params.set("wine_type", wineType);
+        if (maxPrice) params.set("max_price", maxPrice);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search?${params}`);
+        const data = await res.json();
+        newPicks = (data.picks || []) as WineItem[];
+        setHasMore(false);
+      } else {
+        const occasionKey = T.da.occasions[occasionIdx].toLowerCase();
+        const flavorKey   = t.flavors[flavorIdx].key;
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/recommend`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            occasion:    occasionKey,
+            flavor:      flavorKey,
+            wine_type:   wineType ?? undefined,
+            max_price:   maxPrice ? Number(maxPrice) : undefined,
+            exclude_ids: excludeIds,
+            language:    lang,
+          }),
+        });
+        const data = await res.json();
+        newPicks = (data.picks || []).slice(0, 3);
+        setHasMore(newPicks.length === 3);
+      }
+
+      if (append) setPicks((p) => [...p, ...newPicks]);
+      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); }
+    } catch {
+      setError(t.errorMsg);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }
+
+  const handleSearch   = () => fetchWines([], false);
+  const handleLoadMore = () => fetchWines(picks.map((w) => w.id), true);
+
+  return (
+    <div data-theme={theme} style={{ minHeight: "100vh", backgroundColor: "var(--page-bg)" }}>
+
+      {/* Header */}
+      <header style={{
+        backgroundColor: "var(--nav-bg)", padding: "0 24px",
+        position: "sticky", top: 0, zIndex: 50,
+        boxShadow: "0 1px 12px rgba(0,0,0,0.25)",
+      }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Wine size={20} color="var(--nav-text)" />
+            <span style={{ color: "var(--nav-text)", fontSize: 17, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>VinFinder</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span className="nav-label" style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase" }}>
+              {t.navLabel}
+            </span>
+            <button
+              onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              className="nav-icon-btn"
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                backgroundColor: "rgba(232,213,183,0.1)",
+                border: "1px solid rgba(232,213,183,0.2)",
+                borderRadius: 6, padding: "5px 8px",
+                color: "var(--nav-text)", cursor: "pointer",
+              }}
+            >
+              {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
+            </button>
+            <button
+              onClick={() => { setLang(lang === "da" ? "en" : "da"); setSearched(false); setPicks([]); }}
+              className="nav-icon-btn"
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                backgroundColor: "rgba(232,213,183,0.1)",
+                border: "1px solid rgba(232,213,183,0.2)",
+                borderRadius: 6, padding: "5px 10px",
+                color: "var(--nav-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
+              }}
+            >
+              <Globe size={13} />
+              {lang === "da" ? "EN" : "DA"}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <div style={{ backgroundColor: "var(--nav-bg)", padding: "52px 24px 60px" }}>
+        <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
+          <h1 className="hero-title" style={{ color: "var(--nav-text)", fontSize: 38, fontWeight: 700, marginBottom: 14, lineHeight: 1.2, letterSpacing: -0.5 }}>
+            {t.heroTitle}
+          </h1>
+          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.75, maxWidth: 460, margin: "0 auto" }}>
+            {t.heroSub}
+          </p>
+        </div>
+      </div>
+
+      {/* Form card */}
+      <div style={{ maxWidth: 860, margin: "-28px auto 0", padding: "0 20px 60px" }}>
+        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 16, boxShadow: "0 4px 24px var(--card-shadow)", padding: "32px 28px", marginBottom: 32 }}>
+
+          {/* Name search */}
+          <Section label={t.sectionSearch}>
+            <input
+              type="text"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder={t.searchPlaceholder}
+              style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: "100%", maxWidth: 340, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+            />
+          </Section>
+
+          <Divider />
+
+          {/* Type */}
+          <Section label={t.sectionType}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {t.wineTypes.map(({ label, value }, i) => {
+                const active = wineType === value;
+                const Icon = TYPE_ICONS[i];
+                return (
+                  <button key={label} onClick={() => setWineType(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                    <Icon size={14} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Divider />
+
+          {/* Occasion */}
+          <Section label={t.sectionOccasion}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {t.occasions.map((label, i) => {
+                const active = occasionIdx === i;
+                const Icon = OCCASION_ICONS[i];
+                return (
+                  <button key={label} onClick={() => setOccasionIdx(i)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                    <Icon size={14} />
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Divider />
+
+          {/* Flavor */}
+          <Section label={t.sectionFlavor}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {t.flavors.map(({ label, desc }, i) => {
+                const active = flavorIdx === i;
+                return (
+                  <button key={label} onClick={() => setFlavorIdx(i)} className={`chip${active ? " active" : ""}`} style={{ ...chipStyle(active), flexDirection: "column", alignItems: "flex-start", gap: 1, padding: "10px 16px" }}>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span>
+                    <span style={{ fontSize: 11, opacity: 0.65, fontWeight: 400 }}>{desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Divider />
+
+          {/* Price + CTA */}
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", marginBottom: 8 }}>
+                {t.sectionPrice}
+              </label>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="number"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder={t.pricePlaceholder}
+                  style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: 140, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none" }}
+                />
+                <span style={{ color: "var(--text-mid)", fontSize: 14, fontWeight: 500 }}>{t.priceUnit}</span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 12, color: "var(--text-mid)", marginBottom: 0, flex: "1 1 100%", letterSpacing: 0.3 }}>
+              {[wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null, t.occasions[occasionIdx], t.flavors[flavorIdx].label].filter(Boolean).join(" · ")}
+            </p>
+
+            <button onClick={handleSearch} disabled={loading} className="find-btn" style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, whiteSpace: "nowrap" }}>
+              {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <ArrowRight size={16} />}
+              {loading ? t.searching : t.findBtn}
+            </button>
+          </div>
+
+          {error && <p style={{ color: "#C0392B", fontSize: 14, marginTop: 16, fontWeight: 500 }}>{error}</p>}
+        </div>
+
+        {/* Results */}
+        {searched && !loading && (
+          <div ref={resultsRef} style={{ scrollMarginTop: 80 }}>
+            {picks.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>{t.resultsCount(picks.length)}</h2>
+                <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                  <RefreshCw size={13} />{t.searchAgain}
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {picks.map((wine, i) => (
+                <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
+              ))}
+            </div>
+
+            {picks.length > 0 && hasMore && (
+              <div style={{ textAlign: "center", marginTop: 24 }}>
+                <button onClick={handleLoadMore} disabled={loadingMore} className="more-btn" style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "var(--card-bg)", color: "var(--text)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loadingMore ? "not-allowed" : "pointer", opacity: loadingMore ? 0.6 : 1, boxShadow: "0 1px 4px var(--card-shadow)" }}>
+                  {loadingMore
+                    ? <><Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} />{t.loadingMore}</>
+                    : <><ChevronRight size={15} />{t.loadMore}</>}
+                </button>
+              </div>
+            )}
+
+            {picks.length === 0 && !error && (
+              <div style={{ textAlign: "center", padding: "48px 0" }}>
+                <Wine size={36} color="var(--border)" style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>{t.emptyTitle}</p>
+                <p style={{ fontSize: 14, color: "var(--text-mid)" }}>{t.emptySub}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer style={{ backgroundColor: "var(--nav-bg)", padding: "28px 24px", textAlign: "center" }}>
+        <p style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>
+          VineFinder · {t.footerSub}
+        </p>
+        <a href="https://viniferavin.dk" target="_blank" rel="noreferrer" style={{ color: "var(--nav-text)", fontSize: 12, textDecoration: "none", opacity: 0.5 }}>
+          vinfinder
+        </a>
+      </footer>
+
+      <style>{`
+        [data-theme="light"] {
+          --page-bg:           #FAF7F2;
+          --nav-bg:            #2C1810;
+          --nav-text:          #E8D5B7;
+          --nav-mid:           #8B6B4A;
+          --hero-sub:          #A08060;
+          --card-bg:           #FFFFFF;
+          --card-shadow:       rgba(44,24,16,0.10);
+          --sidebar-bg:        #F5EFE8;
+          --input-bg:          #FAF7F2;
+          --primary-bg:        #2C1810;
+          --primary-text:      #E8D5B7;
+          --primary-hover-bg:  #3D2010;
+          --text:              #2C1810;
+          --text-mid:          #8B6B4A;
+          --text-sub:          #4A3728;
+          --border:            #EDE5DB;
+          --chip-bg:           #FAF7F2;
+          --chip-text:         #3D2B1F;
+          --chip-hover-bg:     #F5EFE8;
+          --chip-hover-border: #2C1810;
+          --buy-btn-bg:        #F5EFE8;
+          --buy-hover-bg:      #EDE0D0;
+          --buy-hover-border:  #2C1810;
+          --more-hover-bg:     #F5EFE8;
+          --reset-hover-text:  #2C1810;
+          --reset-hover-bg:    #F5EFE8;
+        }
+        [data-theme="dark"] {
+          --page-bg:           #130A06;
+          --nav-bg:            #0D0603;
+          --nav-text:          #E8D5B7;
+          --nav-mid:           #7A5A3A;
+          --hero-sub:          #7A5A3A;
+          --card-bg:           #2C1810;
+          --card-shadow:       rgba(0,0,0,0.35);
+          --sidebar-bg:        #1E0D07;
+          --input-bg:          #1A0D08;
+          --primary-bg:        #E8D5B7;
+          --primary-text:      #2C1810;
+          --primary-hover-bg:  #D4C3A3;
+          --text:              #E8D5B7;
+          --text-mid:          #A08060;
+          --text-sub:          #C4A882;
+          --border:            #3D2B1F;
+          --chip-bg:           #1A0D08;
+          --chip-text:         #C4A882;
+          --chip-hover-bg:     #231208;
+          --chip-hover-border: #C4A882;
+          --buy-btn-bg:        #1A0D08;
+          --buy-hover-bg:      #3D2B1F;
+          --buy-hover-border:  #C4A882;
+          --more-hover-bg:     #231208;
+          --reset-hover-text:  #E8D5B7;
+          --reset-hover-bg:    #231208;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .chip { transition: all 0.15s ease; }
+        .chip:not(.active):hover { border-color: var(--chip-hover-border)!important; background-color: var(--chip-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .chip:not(.active):active { transform: translateY(0); }
+        .wine-card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .wine-card:hover { box-shadow: 0 6px 24px var(--card-shadow)!important; transform: translateY(-2px); }
+        .find-btn { transition: opacity 0.15s, transform 0.15s, background-color 0.15s; }
+        .find-btn:hover:not(:disabled) { background-color: var(--primary-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.20); }
+        .find-btn:active:not(:disabled) { transform: translateY(0); }
+        .buy-btn { transition: background-color 0.15s, border-color 0.15s, transform 0.15s; }
+        .buy-btn:hover { background-color: var(--buy-hover-bg)!important; border-color: var(--buy-hover-border)!important; transform: translateY(-1px); }
+        .buy-btn:active { transform: translateY(0); }
+        .more-btn { transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+        .more-btn:hover:not(:disabled) { background-color: var(--more-hover-bg)!important; transform: translateY(-1px); }
+        .more-btn:active:not(:disabled) { transform: translateY(0); }
+        .reset-btn { transition: color 0.15s, background-color 0.15s; border-radius: 6px; padding: 4px 8px; }
+        .reset-btn:hover { color: var(--reset-hover-text)!important; background-color: var(--reset-hover-bg); }
+        .nav-icon-btn { transition: background-color 0.15s, border-color 0.15s; }
+        .nav-icon-btn:hover { background-color: rgba(232,213,183,0.2)!important; border-color: rgba(232,213,183,0.4)!important; }
+
+        @media (max-width: 480px) {
+          .nav-label { display: none !important; }
+          .hero-title { font-size: 26px !important; letter-spacing: -0.3px !important; }
+          .hero-sub { font-size: 14px !important; }
+          .form-card { padding: 20px 16px !important; }
+          .find-btn { width: 100% !important; justify-content: center !important; }
+          .wine-card-sidebar { width: 90px !important; }
+          .wine-card-img { width: 55px !important; height: 95px !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Section({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", marginBottom: 12 }}>
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function Divider() {
+  return <div style={{ height: 1, backgroundColor: "var(--border)", margin: "24px 0" }} />;
+}
+
+type Translations = typeof T[Lang];
+
+function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translations }) {
+  const [expanded, setExpanded] = useState(false);
+  const CUTOFF = 240;
+  return (
+    <div className="wine-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 10px var(--card-shadow)" }}>
+      <div style={{ display: "flex" }}>
+        <div className="wine-card-sidebar" style={{ width: 140, flexShrink: 0, backgroundColor: "var(--sidebar-bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 10px", gap: 12 }}>
+          <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
+            {rank}
+          </div>
+          {wine.image_url
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img className="wine-card-img" src={wine.image_url} alt={wine.title} style={{ width: 80, height: 140, objectFit: "contain" }} />
+            : <Wine size={48} color="var(--text-mid)" />}
+        </div>
+
+        <div style={{ flex: 1, padding: "18px 18px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1 }}>{wine.title}</h3>
+              <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{wine.price_dkk} kr</span>
+            </div>
+            <p style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, margin: "0 0 12px", lineHeight: 1.4 }}>
+              {[wine.producer, wine.country, wine.wine_type].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+          <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", alignSelf: "flex-start" }}>
+            <ExternalLink size={12} />{t.buyBtn}
+          </a>
+        </div>
+      </div>
+
+      {(wine.reason || wine.description) && (
+        <div style={{ borderTop: "1px solid var(--border)", padding: "14px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {wine.reason && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <Sparkles size={14} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", display: "block", marginBottom: 3 }}>{t.recLabel}</span>
+                <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.65, fontStyle: "italic", margin: 0 }}>&ldquo;{wine.reason}&rdquo;</p>
+              </div>
+            </div>
+          )}
+          {wine.description && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <Grape size={14} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", display: "block", marginBottom: 3 }}>{t.noteLabel}</span>
+                <p style={{ fontSize: 13, color: "var(--text-sub)", lineHeight: 1.7, margin: 0 }}>
+                  {!expanded && wine.description.length > CUTOFF
+                    ? wine.description.slice(0, CUTOFF).trimEnd() + "…"
+                    : wine.description}
+                </p>
+                {wine.description.length > CUTOFF && (
+                  <button
+                    onClick={() => setExpanded((e) => !e)}
+                    style={{ background: "none", border: "none", padding: "4px 0 0", fontSize: 12, fontWeight: 600, color: "var(--text-mid)", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 2 }}
+                  >
+                    {expanded ? t.readLess : t.readMore}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
