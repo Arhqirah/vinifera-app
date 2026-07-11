@@ -67,12 +67,13 @@ const T = {
       "Julefrokost", "Bryllup", "Filmaften", "Picnic",
     ],
     flavors: [
-      { label: "Frugtig", desc: "Frisk og bærpræget",  key: "frugtig" },
-      { label: "Let",     desc: "Delikat og elegant",  key: "let" },
-      { label: "Fyldig",  desc: "Kraftig og rund",     key: "fyldig" },
-      { label: "Tør",     desc: "Ingen restsødme",     key: "tør" },
-      { label: "Sød",     desc: "Blød sødme",          key: "sød" },
-      { label: "Frisk",   desc: "Sprød syre",          key: "frisk" },
+      { label: "Ved ikke", desc: "Overrask mig",       key: "overrask" },
+      { label: "Frugtig",  desc: "Frisk og bærpræget", key: "frugtig" },
+      { label: "Let",      desc: "Delikat og elegant", key: "let" },
+      { label: "Fyldig",   desc: "Kraftig og rund",    key: "fyldig" },
+      { label: "Tør",      desc: "Ingen restsødme",    key: "tør" },
+      { label: "Sød",      desc: "Blød sødme",         key: "sød" },
+      { label: "Frisk",    desc: "Sprød syre",         key: "frisk" },
     ],
   },
   en: {
@@ -129,6 +130,7 @@ const T = {
       "Christmas lunch", "Wedding", "Movie night", "Picnic",
     ],
     flavors: [
+      { label: "Not sure",    desc: "Surprise me",             key: "overrask" },
       { label: "Fruity",      desc: "Fresh and berry-forward", key: "frugtig" },
       { label: "Light",       desc: "Delicate and elegant",    key: "let" },
       { label: "Full-bodied", desc: "Rich and round",          key: "fyldig" },
