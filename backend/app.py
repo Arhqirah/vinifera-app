@@ -30,7 +30,7 @@ from flask_cors import CORS
 import mysql.connector
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 DB_CONFIG = {
     "host":            os.environ.get("DB_HOST", "localhost"),
