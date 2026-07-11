@@ -81,8 +81,16 @@ const T = {
       { label: "Max 200 kr",  value: "200" },
       { label: "Max 400 kr",  value: "400" },
     ],
-    refineSearch: "Tilpas søgning",
-    resetFilters: "Nulstil",
+    refineSearch:       "Tilpas søgning",
+    resetFilters:       "Nulstil",
+    sectionSimilar:     "Find lignende vine",
+    similarSub:         "Kender du en vin du er glad for? Skriv navnet og vi finder vine der minder om den.",
+    similarPlaceholder: "f.eks. Barolo, Sancerre, Krebs...",
+    similarBtn:         "Find lignende",
+    similarSearching:   "Søger...",
+    similarRef:         (name: string) => `Vine der minder om "${name}"`,
+    similarNotFound:    "Vinen blev ikke fundet i sortimentet.",
+    similarNotFoundSub: "Prøv et andet navn, eller brug navnesøgningen ovenfor.",
   },
   en: {
     navLabel:          "Wine Finder",
@@ -152,8 +160,16 @@ const T = {
       { label: "Max 200 kr", value: "200" },
       { label: "Max 400 kr", value: "400" },
     ],
-    refineSearch: "Refine search",
-    resetFilters: "Reset",
+    refineSearch:       "Refine search",
+    resetFilters:       "Reset",
+    sectionSimilar:     "Find similar wines",
+    similarSub:         "Know a wine you love? Enter its name and we'll find wines that taste like it.",
+    similarPlaceholder: "e.g. Barolo, Sancerre, Krebs...",
+    similarBtn:         "Find similar",
+    similarSearching:   "Searching...",
+    similarRef:         (name: string) => `Wines similar to "${name}"`,
+    similarNotFound:    "Wine not found in our selection.",
+    similarNotFoundSub: "Try a different name, or use the name search above.",
   },
 } as const;
 
@@ -216,6 +232,14 @@ export default function VineFinderPage() {
   const [pageShelfResult,  setPageShelfResult]  = useState<string | null>(null);
   const [pageShelfLoading, setPageShelfLoading] = useState(false);
   const [formOpen,         setFormOpen]         = useState(true);
+  const [similarName,     setSimilarName]     = useState("");
+  const [similarLoading,  setSimilarLoading]  = useState(false);
+  const [similarPicks,    setSimilarPicks]    = useState<WineItem[]>([]);
+  const [similarSearched, setSimilarSearched] = useState(false);
+  const [similarRefTitle, setSimilarRefTitle] = useState("");
+  const [similarNotFound, setSimilarNotFound] = useState(false);
+  const [similarError,    setSimilarError]    = useState<string | null>(null);
+  const similarResultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (searchCount > 0) {
@@ -281,6 +305,34 @@ export default function VineFinderPage() {
 
   const handleSearch   = () => fetchWines([], false);
   const handleLoadMore = () => fetchWines(picks.map((w) => w.id), true);
+
+  async function handleSimilarSearch() {
+    if (!similarName.trim()) return;
+    setSimilarLoading(true);
+    setSimilarSearched(true);
+    setSimilarPicks([]);
+    setSimilarNotFound(false);
+    setSimilarError(null);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/similar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wine_name: similarName.trim(), language: lang }),
+      });
+      const data = await res.json();
+      if (data.not_found) {
+        setSimilarNotFound(true);
+      } else {
+        setSimilarPicks(data.picks || []);
+        setSimilarRefTitle(data.reference?.title || similarName);
+      }
+    } catch {
+      setSimilarError(t.errorMsg);
+    } finally {
+      setSimilarLoading(false);
+      setTimeout(() => similarResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  }
 
   function handleReset() {
     setWineType(null);
@@ -578,6 +630,64 @@ export default function VineFinderPage() {
                 <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>{t.emptyTitle}</p>
                 <p style={{ fontSize: 14, color: "var(--text-mid)" }}>{t.emptySub}</p>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Similar wines card */}
+        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 16, boxShadow: "0 4px 24px var(--card-shadow)", padding: "28px 28px", marginBottom: 32 }}>
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: "0 0 4px" }}>{t.sectionSimilar}</h2>
+            <p style={{ fontSize: 13, color: "var(--text-mid)", margin: 0, lineHeight: 1.55 }}>{t.similarSub}</p>
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <input
+              type="text"
+              value={similarName}
+              onChange={(e) => setSimilarName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSimilarSearch()}
+              placeholder={t.similarPlaceholder}
+              style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, flex: "1 1 200px", minWidth: 0, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none" }}
+            />
+            <button
+              onClick={handleSimilarSearch}
+              disabled={similarLoading || !similarName.trim()}
+              className="find-btn"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", border: "none", borderRadius: 8, padding: "10px 22px", fontSize: 14, fontWeight: 600, cursor: (similarLoading || !similarName.trim()) ? "not-allowed" : "pointer", opacity: (similarLoading || !similarName.trim()) ? 0.6 : 1, whiteSpace: "nowrap" }}
+            >
+              {similarLoading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Sparkles size={15} />}
+              {similarLoading ? t.similarSearching : t.similarBtn}
+            </button>
+          </div>
+        </div>
+
+        {/* Similar results */}
+        {similarSearched && (
+          <div ref={similarResultsRef} style={{ marginBottom: 48, scrollMarginTop: 80 }}>
+            {similarLoading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <SkeletonCard /><SkeletonCard /><SkeletonCard />
+              </div>
+            )}
+            {!similarLoading && similarNotFound && (
+              <div style={{ textAlign: "center", padding: "36px 0" }}>
+                <Wine size={36} color="var(--border)" style={{ marginBottom: 12 }} />
+                <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>{t.similarNotFound}</p>
+                <p style={{ fontSize: 14, color: "var(--text-mid)" }}>{t.similarNotFoundSub}</p>
+              </div>
+            )}
+            {!similarLoading && !similarNotFound && similarPicks.length > 0 && (
+              <>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>{t.similarRef(similarRefTitle)}</h2>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {similarPicks.map((wine, i) => (
+                    <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} lang={lang} />
+                  ))}
+                </div>
+              </>
+            )}
+            {!similarLoading && similarError && (
+              <p style={{ color: "#C0392B", fontSize: 14, fontWeight: 500 }}>{similarError}</p>
             )}
           </div>
         )}

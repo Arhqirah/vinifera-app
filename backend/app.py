@@ -268,6 +268,153 @@ def recommend():
     return jsonify({"picks": enriched_picks})
 
 
+def ask_claude_similar(reference: dict, candidates: list[dict], language: str = "da") -> dict:
+    ref_summary = {
+        "title":      reference["title"],
+        "type":       reference.get("wine_type"),
+        "country":    reference.get("country"),
+        "fruitiness": reference.get("fruitiness"),
+        "body":       reference.get("body"),
+        "sweetness":  reference.get("sweetness"),
+        "acidity":    reference.get("acidity"),
+        "tannin":     reference.get("tannin"),
+        "description": (reference.get("description") or "")[:200],
+    }
+    candidate_summary = [
+        {
+            "id":         w["id"],
+            "title":      w["title"],
+            "type":       w.get("wine_type"),
+            "country":    w.get("country"),
+            "price_dkk":  float(w["price_dkk"]) if w.get("price_dkk") else None,
+            "fruitiness": w.get("fruitiness"),
+            "body":       w.get("body"),
+            "sweetness":  w.get("sweetness"),
+            "acidity":    w.get("acidity"),
+            "tannin":     w.get("tannin"),
+            "description": (w.get("description") or "")[:200],
+        }
+        for w in candidates
+    ]
+
+    if language == "en":
+        system_prompt = (
+            "You are a friendly wine advisor at Vinifera in Birkerød, Denmark. "
+            "A customer loves a specific wine and wants to find similar ones. "
+            "You receive the reference wine and a list of candidates from the shop's actual inventory. "
+            "Pick the 3 candidates most similar to the reference wine in style, taste and character. "
+            "Write a brief, warm reason in English for each — use only the data given, NEVER invent facts.\n\n"
+            'Reply as JSON: {"picks": [{"id": 1, "reason": "short friendly reason"}]}'
+        )
+    else:
+        system_prompt = (
+            "Du er en venlig vinrådgiver hos Vinifera i Birkerød. "
+            "En kunde er glad for en bestemt vin og vil finde lignende vine. "
+            "Du får referencevinen og en liste af kandidater fra butikkens faktiske sortiment. "
+            "Vælg de 3 kandidater der minder mest om referencevinen i stil, smag og karakter. "
+            "Skriv en kort, varm begrundelse på dansk for hvert valg — brug kun de givne data, opfind ALDRIG fakta.\n\n"
+            'Svar som JSON: {"picks": [{"id": 1, "reason": "kort begrundelse på dansk"}]}'
+        )
+
+    user_message = json.dumps(
+        {"reference_wine": ref_summary, "candidates": candidate_summary},
+        ensure_ascii=False,
+    )
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=600,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    text = response.content[0].text.strip()
+    text = text.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    return json.loads(text)
+
+
+@app.route("/api/similar", methods=["POST"])
+def find_similar():
+    data      = request.get_json(force=True)
+    wine_name = data.get("wine_name", "").strip()
+    max_price = data.get("max_price")
+    language  = data.get("language", "da")
+
+    if not wine_name:
+        return jsonify({"error": "Manglende vinnavn"}), 400
+
+    conn   = get_db()
+    cursor = conn.cursor(dictionary=True)
+
+    # Find reference wine by fuzzy name match
+    cursor.execute(
+        "SELECT * FROM wines WHERE in_stock = TRUE AND title LIKE %s ORDER BY title LIMIT 1",
+        (f"%{wine_name}%",),
+    )
+    ref = cursor.fetchone()
+
+    if not ref:
+        cursor.close()
+        conn.close()
+        return jsonify({"picks": [], "not_found": True})
+
+    # Euclidean distance on the 5 taste dimensions — default to 3 (mid) when NULL
+    rf, rb, rs, ra, rt = (
+        ref.get("fruitiness") or 3,
+        ref.get("body")       or 3,
+        ref.get("sweetness")  or 3,
+        ref.get("acidity")    or 3,
+        ref.get("tannin")     or 3,
+    )
+
+    query = """
+        SELECT *,
+          (POW(COALESCE(fruitiness, 3) - %s, 2) +
+           POW(COALESCE(body,       3) - %s, 2) +
+           POW(COALESCE(sweetness,  3) - %s, 2) +
+           POW(COALESCE(acidity,    3) - %s, 2) +
+           POW(COALESCE(tannin,     3) - %s, 2)) AS distance
+        FROM wines
+        WHERE in_stock = TRUE
+          AND id != %s
+          AND wine_type IS NOT NULL
+          AND wine_type NOT IN ('Øl & vand')
+    """
+    params = [rf, rb, rs, ra, rt, ref["id"]]
+
+    if max_price:
+        query += " AND price_dkk <= %s"
+        params.append(max_price)
+
+    query += " ORDER BY distance ASC LIMIT 8"
+    cursor.execute(query, params)
+    candidates = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Strip the computed distance column before JSON serialisation
+    candidates = [{k: v for k, v in w.items() if k != "distance"} for w in candidates]
+
+    if not candidates:
+        return jsonify({"picks": [], "reference": {"title": ref["title"]}, "not_found": False})
+
+    try:
+        ai_result = ask_claude_similar(ref, candidates, language)
+    except Exception as e:
+        return jsonify({
+            "picks": [{**w, "reason": None} for w in candidates[:3]],
+            "reference": {"title": ref["title"]},
+            "ai_error": str(e),
+        })
+
+    wines_by_id = {w["id"]: w for w in candidates}
+    enriched = []
+    for pick in ai_result.get("picks", []):
+        wine = wines_by_id.get(pick["id"])
+        if wine:
+            enriched.append({**wine, "reason": pick.get("reason")})
+
+    return jsonify({"picks": enriched, "reference": {"title": ref["title"]}})
+
+
 @app.route("/api/find-on-shelf", methods=["POST"])
 def find_on_shelf():
     data = request.get_json(force=True)
