@@ -6,7 +6,7 @@ import {
   Heart, PartyPopper, UtensilsCrossed, Grape, Droplets,
   ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
   Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
-  Moon, Sun, Camera,
+  Moon, Sun, Camera, X, SlidersHorizontal,
 } from "lucide-react";
 
 type Lang = "da" | "en";
@@ -75,6 +75,14 @@ const T = {
       { label: "Sød",      desc: "Blød sødme",         key: "sød" },
       { label: "Frisk",    desc: "Sprød syre",         key: "frisk" },
     ],
+    pricePresets: [
+      { label: "Alle priser", value: "" },
+      { label: "Max 100 kr",  value: "100" },
+      { label: "Max 200 kr",  value: "200" },
+      { label: "Max 400 kr",  value: "400" },
+    ],
+    refineSearch: "Tilpas søgning",
+    resetFilters: "Nulstil",
   },
   en: {
     navLabel:          "Wine Finder",
@@ -138,6 +146,14 @@ const T = {
       { label: "Sweet",       desc: "Soft sweetness",          key: "sød" },
       { label: "Crisp",       desc: "Vibrant acidity",         key: "frisk" },
     ],
+    pricePresets: [
+      { label: "Any price",  value: "" },
+      { label: "Max 100 kr", value: "100" },
+      { label: "Max 200 kr", value: "200" },
+      { label: "Max 400 kr", value: "400" },
+    ],
+    refineSearch: "Refine search",
+    resetFilters: "Reset",
   },
 } as const;
 
@@ -199,6 +215,7 @@ export default function VineFinderPage() {
   const pageFileRef     = useRef<HTMLInputElement>(null);
   const [pageShelfResult,  setPageShelfResult]  = useState<string | null>(null);
   const [pageShelfLoading, setPageShelfLoading] = useState(false);
+  const [formOpen,         setFormOpen]         = useState(true);
 
   useEffect(() => {
     if (searchCount > 0) {
@@ -209,8 +226,17 @@ export default function VineFinderPage() {
   const t = T[lang];
 
   async function fetchWines(excludeIds: number[] = [], append = false) {
-    if (append) setLoadingMore(true);
-    else { setLoading(true); setError(null); }
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError(null);
+      setSearched(true);
+      setPicks([]);
+      setFormOpen(false);
+      setPageShelfResult(null);
+      setSearchCount((c) => c + 1);
+    }
 
     try {
       let newPicks: WineItem[];
@@ -244,7 +270,7 @@ export default function VineFinderPage() {
       }
 
       if (append) setPicks((p) => [...p, ...newPicks]);
-      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); setPageShelfResult(null); }
+      else setPicks(newPicks);
     } catch {
       setError(t.errorMsg);
     } finally {
@@ -255,6 +281,19 @@ export default function VineFinderPage() {
 
   const handleSearch   = () => fetchWines([], false);
   const handleLoadMore = () => fetchWines(picks.map((w) => w.id), true);
+
+  function handleReset() {
+    setWineType(null);
+    setOccasionIdx(0);
+    setFlavorIdx(0);
+    setMaxPrice("");
+    setNameSearch("");
+    setSearched(false);
+    setPicks([]);
+    setError(null);
+    setPageShelfResult(null);
+    setFormOpen(true);
+  }
 
   async function handlePageShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -343,118 +382,155 @@ export default function VineFinderPage() {
       <div style={{ maxWidth: 860, margin: "-28px auto 0", padding: "0 20px 60px" }}>
         <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 16, boxShadow: "0 4px 24px var(--card-shadow)", padding: "32px 28px", marginBottom: 32 }}>
 
-          {/* Occasion */}
-          <Section label={t.sectionOccasion}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {t.occasions.map((label, i) => {
-                const active = occasionIdx === i;
-                const Icon = OCCASION_ICONS[i];
-                return (
-                  <button key={label} onClick={() => setOccasionIdx(i)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
-                    <Icon size={14} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
-          <Divider />
-
-          {/* Type */}
-          <Section label={t.sectionType}>
-            <div className="type-chips-row">
-              {t.wineTypes.map(({ label, value }, i) => {
-                const active = wineType === value;
-                const Icon = TYPE_ICONS[i];
-                return (
-                  <button key={label} onClick={() => setWineType(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
-                    <Icon size={14} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
-          <Divider />
-
-          {/* Flavor */}
-          <Section label={t.sectionFlavor}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {t.flavors.map(({ label, desc }, i) => {
-                const active = flavorIdx === i;
-                return (
-                  <button key={label} onClick={() => setFlavorIdx(i)} className={`chip${active ? " active" : ""}`} style={{ ...chipStyle(active), flexDirection: "column", alignItems: "flex-start", gap: 1, padding: "10px 16px" }}>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span>
-                    <span style={{ fontSize: 11, opacity: 0.65, fontWeight: 400 }}>{desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </Section>
-
-          <Divider />
-
-          {/* Price + CTA */}
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 16, flexWrap: "wrap" }}>
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", marginBottom: 8 }}>
-                {t.sectionPrice}
-              </label>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
-                  type="number"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  placeholder={t.pricePlaceholder}
-                  style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: 140, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none" }}
-                />
-                <span style={{ color: "var(--text-mid)", fontSize: 14, fontWeight: 500 }}>{t.priceUnit}</span>
+          {searched && !formOpen ? (
+            /* Collapsed state */
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+                {([
+                  wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
+                  t.occasions[occasionIdx],
+                  t.flavors[flavorIdx].label,
+                  maxPrice ? `max ${maxPrice} kr` : null,
+                ] as (string | null)[]).filter(Boolean).map((lbl) => (
+                  <span key={lbl!} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-mid)", backgroundColor: "var(--chip-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
+                    {lbl}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button onClick={() => setFormOpen(true)} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "7px 14px", cursor: "pointer" }}>
+                  <SlidersHorizontal size={13} />{t.refineSearch}
+                </button>
+                <button onClick={handleReset} className="reset-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 500, color: "var(--text-mid)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
+                  <X size={13} />{t.resetFilters}
+                </button>
               </div>
             </div>
+          ) : (
+            /* Full form */
+            <>
+              {/* Occasion */}
+              <Section label={t.sectionOccasion}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {t.occasions.map((label, i) => {
+                    const active = occasionIdx === i;
+                    const Icon = OCCASION_ICONS[i];
+                    return (
+                      <button key={label} onClick={() => setOccasionIdx(i)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                        <Icon size={14} />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
 
-            <div style={{ flex: "1 1 100%", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-              {([
-                wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
-                t.occasions[occasionIdx],
-                t.flavors[flavorIdx].label,
-                maxPrice ? `max ${maxPrice} kr` : null,
-              ] as (string | null)[]).filter(Boolean).map((lbl) => (
-                <span key={lbl!} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-mid)", backgroundColor: "var(--chip-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
-                  {lbl}
-                </span>
-              ))}
-            </div>
+              <Divider />
 
-            <button onClick={handleSearch} disabled={loading} className="find-btn" style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, whiteSpace: "nowrap" }}>
-              {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <ArrowRight size={16} />}
-              {loading ? t.searching : t.findBtn}
-            </button>
-          </div>
+              {/* Type */}
+              <Section label={t.sectionType}>
+                <div className="type-chips-row">
+                  {t.wineTypes.map(({ label, value }, i) => {
+                    const active = wineType === value;
+                    const Icon = TYPE_ICONS[i];
+                    return (
+                      <button key={label} onClick={() => setWineType(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                        <Icon size={14} />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
 
-          <Divider />
+              <Divider />
 
-          {/* Name search — optional shortcut */}
-          <Section label={t.sectionSearch}>
-            <input
-              type="text"
-              value={nameSearch}
-              onChange={(e) => setNameSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder={t.searchPlaceholder}
-              style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: "100%", maxWidth: 340, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none", boxSizing: "border-box" }}
-            />
-          </Section>
+              {/* Flavor */}
+              <Section label={t.sectionFlavor}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {t.flavors.map(({ label, desc }, i) => {
+                    const active = flavorIdx === i;
+                    return (
+                      <button key={label} onClick={() => setFlavorIdx(i)} className={`chip${active ? " active" : ""}`} style={{ ...chipStyle(active), flexDirection: "column", alignItems: "flex-start", gap: 1, padding: "10px 16px" }}>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{label}</span>
+                        <span style={{ fontSize: 11, opacity: 0.65, fontWeight: 400 }}>{desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
 
-          {error && <p style={{ color: "#C0392B", fontSize: 14, marginTop: 16, fontWeight: 500 }}>{error}</p>}
+              <Divider />
+
+              {/* Price presets */}
+              <Section label={t.sectionPrice}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {t.pricePresets.map(({ label, value }) => {
+                    const active = maxPrice === value;
+                    return (
+                      <button key={label} onClick={() => setMaxPrice(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
+
+              <Divider />
+
+              {/* CTA */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                <button onClick={handleSearch} disabled={loading} className="find-btn" style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, whiteSpace: "nowrap" }}>
+                  {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <ArrowRight size={16} />}
+                  {loading ? t.searching : t.findBtn}
+                </button>
+                {(wineType !== null || occasionIdx !== 0 || flavorIdx !== 0 || maxPrice !== "" || nameSearch !== "") && (
+                  <button onClick={handleReset} className="reset-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 500, color: "var(--text-mid)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
+                    <X size={13} />{t.resetFilters}
+                  </button>
+                )}
+                <div style={{ flex: "1 1 100%", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
+                  {([
+                    wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
+                    t.occasions[occasionIdx],
+                    t.flavors[flavorIdx].label,
+                    maxPrice ? `max ${maxPrice} kr` : null,
+                  ] as (string | null)[]).filter(Boolean).map((lbl) => (
+                    <span key={lbl!} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-mid)", backgroundColor: "var(--chip-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
+                      {lbl}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <Divider />
+
+              {/* Name search — optional shortcut */}
+              <Section label={t.sectionSearch}>
+                <input
+                  type="text"
+                  value={nameSearch}
+                  onChange={(e) => setNameSearch(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                  placeholder={t.searchPlaceholder}
+                  style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: "100%", maxWidth: 340, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+                />
+              </Section>
+
+              {error && <p style={{ color: "#C0392B", fontSize: 14, marginTop: 16, fontWeight: 500 }}>{error}</p>}
+            </>
+          )}
         </div>
 
         {/* Results */}
-        {searched && !loading && (
+        {searched && (
           <div ref={resultsRef} style={{ scrollMarginTop: 80 }}>
-            {picks.length > 0 && (
+            {loading && !loadingMore && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <SkeletonCard /><SkeletonCard /><SkeletonCard />
+              </div>
+            )}
+            {!loading && picks.length > 0 && (
               <>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                   <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>{t.resultsCount(picks.length)}</h2>
@@ -478,13 +554,15 @@ export default function VineFinderPage() {
               </>
             )}
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {picks.map((wine, i) => (
-                <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} lang={lang} />
-              ))}
-            </div>
+            {!loading && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {picks.map((wine, i) => (
+                  <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} lang={lang} />
+                ))}
+              </div>
+            )}
 
-            {picks.length > 0 && hasMore && (
+            {!loading && picks.length > 0 && hasMore && (
               <div style={{ textAlign: "center", marginTop: 24 }}>
                 <button onClick={handleLoadMore} disabled={loadingMore} className="more-btn" style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "var(--card-bg)", color: "var(--text)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loadingMore ? "not-allowed" : "pointer", opacity: loadingMore ? 0.6 : 1, boxShadow: "0 1px 4px var(--card-shadow)" }}>
                   {loadingMore
@@ -494,7 +572,7 @@ export default function VineFinderPage() {
               </div>
             )}
 
-            {picks.length === 0 && !error && (
+            {!loading && picks.length === 0 && !error && (
               <div style={{ textAlign: "center", padding: "48px 0" }}>
                 <Wine size={36} color="var(--border)" style={{ marginBottom: 12 }} />
                 <p style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", marginBottom: 6 }}>{t.emptyTitle}</p>
@@ -573,6 +651,8 @@ export default function VineFinderPage() {
           --reset-hover-bg:    #231208;
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--chip-hover-bg) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
         .chip { transition: all 0.15s ease; }
         .chip:not(.active):hover { border-color: var(--chip-hover-border)!important; background-color: var(--chip-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
         .chip:not(.active):active { transform: translateY(0); }
@@ -628,6 +708,25 @@ async function resizeImage(file: File): Promise<{ data: string; type: string }> 
     };
     img.src = url;
   });
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{ backgroundColor: "var(--card-bg)", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden" }}>
+      <div style={{ display: "flex" }}>
+        <div className="skeleton" style={{ width: 140, flexShrink: 0, height: 160 }} />
+        <div style={{ flex: 1, padding: "18px 18px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="skeleton" style={{ height: 16, borderRadius: 4, width: "65%" }} />
+          <div className="skeleton" style={{ height: 12, borderRadius: 4, width: "40%" }} />
+          <div className="skeleton" style={{ height: 12, borderRadius: 4, width: "80%", marginTop: 8 }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <div className="skeleton" style={{ height: 30, borderRadius: 6, width: 120 }} />
+            <div className="skeleton" style={{ height: 30, borderRadius: 6, width: 110 }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
