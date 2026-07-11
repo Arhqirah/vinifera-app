@@ -195,7 +195,10 @@ export default function VineFinderPage() {
   const [error,       setError]       = useState<string | null>(null);
   const [searched,    setSearched]    = useState(false);
   const [searchCount, setSearchCount] = useState(0);
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const resultsRef      = useRef<HTMLDivElement>(null);
+  const pageFileRef     = useRef<HTMLInputElement>(null);
+  const [pageShelfResult,  setPageShelfResult]  = useState<string | null>(null);
+  const [pageShelfLoading, setPageShelfLoading] = useState(false);
 
   useEffect(() => {
     if (searchCount > 0) {
@@ -241,7 +244,7 @@ export default function VineFinderPage() {
       }
 
       if (append) setPicks((p) => [...p, ...newPicks]);
-      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); setShelfResult(null); }
+      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); setPageShelfResult(null); }
     } catch {
       setError(t.errorMsg);
     } finally {
@@ -252,6 +255,28 @@ export default function VineFinderPage() {
 
   const handleSearch   = () => fetchWines([], false);
   const handleLoadMore = () => fetchWines(picks.map((w) => w.id), true);
+
+  async function handlePageShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPageShelfLoading(true);
+    setPageShelfResult(null);
+    try {
+      const { data, type } = await resizeImage(file);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find-on-shelf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: data, image_type: type, wine_names: picks.map((w) => w.title), language: lang }),
+      });
+      const json = await res.json();
+      setPageShelfResult(json.result ?? json.error ?? "Ukendt fejl");
+    } catch {
+      setPageShelfResult(lang === "da" ? "Kunne ikke scanne hylden. Prøv igen." : "Could not scan the shelf. Try again.");
+    } finally {
+      setPageShelfLoading(false);
+      if (pageFileRef.current) pageFileRef.current.value = "";
+    }
+  }
 
   return (
     <div data-theme={theme} style={{ minHeight: "100vh", backgroundColor: "var(--page-bg)" }}>
@@ -318,28 +343,14 @@ export default function VineFinderPage() {
       <div style={{ maxWidth: 860, margin: "-28px auto 0", padding: "0 20px 60px" }}>
         <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 16, boxShadow: "0 4px 24px var(--card-shadow)", padding: "32px 28px", marginBottom: 32 }}>
 
-          {/* Name search */}
-          <Section label={t.sectionSearch}>
-            <input
-              type="text"
-              value={nameSearch}
-              onChange={(e) => setNameSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder={t.searchPlaceholder}
-              style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: "100%", maxWidth: 340, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none", boxSizing: "border-box" }}
-            />
-          </Section>
-
-          <Divider />
-
-          {/* Type */}
-          <Section label={t.sectionType}>
+          {/* Occasion */}
+          <Section label={t.sectionOccasion}>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {t.wineTypes.map(({ label, value }, i) => {
-                const active = wineType === value;
-                const Icon = TYPE_ICONS[i];
+              {t.occasions.map((label, i) => {
+                const active = occasionIdx === i;
+                const Icon = OCCASION_ICONS[i];
                 return (
-                  <button key={label} onClick={() => setWineType(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                  <button key={label} onClick={() => setOccasionIdx(i)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
                     <Icon size={14} />
                     {label}
                   </button>
@@ -350,14 +361,14 @@ export default function VineFinderPage() {
 
           <Divider />
 
-          {/* Occasion */}
-          <Section label={t.sectionOccasion}>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {t.occasions.map((label, i) => {
-                const active = occasionIdx === i;
-                const Icon = OCCASION_ICONS[i];
+          {/* Type */}
+          <Section label={t.sectionType}>
+            <div className="type-chips-row">
+              {t.wineTypes.map(({ label, value }, i) => {
+                const active = wineType === value;
+                const Icon = TYPE_ICONS[i];
                 return (
-                  <button key={label} onClick={() => setOccasionIdx(i)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
+                  <button key={label} onClick={() => setWineType(value)} className={`chip${active ? " active" : ""}`} style={chipStyle(active)}>
                     <Icon size={14} />
                     {label}
                   </button>
@@ -404,15 +415,38 @@ export default function VineFinderPage() {
               </div>
             </div>
 
-            <p style={{ fontSize: 12, color: "var(--text-mid)", marginBottom: 0, flex: "1 1 100%", letterSpacing: 0.3 }}>
-              {[wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null, t.occasions[occasionIdx], t.flavors[flavorIdx].label].filter(Boolean).join(" · ")}
-            </p>
+            <div style={{ flex: "1 1 100%", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              {([
+                wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
+                t.occasions[occasionIdx],
+                t.flavors[flavorIdx].label,
+                maxPrice ? `max ${maxPrice} kr` : null,
+              ] as (string | null)[]).filter(Boolean).map((lbl) => (
+                <span key={lbl!} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-mid)", backgroundColor: "var(--chip-bg)", border: "1px solid var(--border)", borderRadius: 4, padding: "3px 8px" }}>
+                  {lbl}
+                </span>
+              ))}
+            </div>
 
             <button onClick={handleSearch} disabled={loading} className="find-btn" style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", border: "none", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1, whiteSpace: "nowrap" }}>
               {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <ArrowRight size={16} />}
               {loading ? t.searching : t.findBtn}
             </button>
           </div>
+
+          <Divider />
+
+          {/* Name search — optional shortcut */}
+          <Section label={t.sectionSearch}>
+            <input
+              type="text"
+              value={nameSearch}
+              onChange={(e) => setNameSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder={t.searchPlaceholder}
+              style={{ border: "1.5px solid var(--border)", borderRadius: 8, padding: "10px 14px", fontSize: 15, width: "100%", maxWidth: 340, backgroundColor: "var(--input-bg)", color: "var(--text)", outline: "none", boxSizing: "border-box" }}
+            />
+          </Section>
 
           {error && <p style={{ color: "#C0392B", fontSize: 14, marginTop: 16, fontWeight: 500 }}>{error}</p>}
         </div>
@@ -421,12 +455,27 @@ export default function VineFinderPage() {
         {searched && !loading && (
           <div ref={resultsRef} style={{ scrollMarginTop: 80 }}>
             {picks.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)" }}>{t.resultsCount(picks.length)}</h2>
-                <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                  <RefreshCw size={13} />{t.searchAgain}
-                </button>
-              </div>
+              <>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>{t.resultsCount(picks.length)}</h2>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <input ref={pageFileRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePageShelfScan} />
+                    <button onClick={() => pageFileRef.current?.click()} disabled={pageShelfLoading} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", cursor: pageShelfLoading ? "not-allowed" : "pointer", opacity: pageShelfLoading ? 0.6 : 1 }}>
+                      {pageShelfLoading ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Camera size={12} />}
+                      {pageShelfLoading ? t.shelfScanning : t.shelfBtn}
+                    </button>
+                    <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                      <RefreshCw size={13} />{t.searchAgain}
+                    </button>
+                  </div>
+                </div>
+                {pageShelfResult && (
+                  <div style={{ marginBottom: 16, backgroundColor: "var(--sidebar-bg)", borderRadius: 8, padding: "12px 16px", display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <Camera size={14} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{pageShelfResult}</p>
+                  </div>
+                )}
+              </>
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -543,6 +592,12 @@ export default function VineFinderPage() {
         .nav-icon-btn { transition: background-color 0.15s, border-color 0.15s; }
         .nav-icon-btn:hover { background-color: rgba(232,213,183,0.2)!important; border-color: rgba(232,213,183,0.4)!important; }
 
+        .type-chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        @media (max-width: 480px) {
+          .type-chips-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; scrollbar-width: none; }
+          .type-chips-row::-webkit-scrollbar { display: none; }
+          .type-chips-row .chip { flex-shrink: 0; }
+        }
         @media (max-width: 480px) {
           .nav-label { display: none !important; }
           .hero-title { font-size: 26px !important; letter-spacing: -0.3px !important; }
@@ -555,6 +610,24 @@ export default function VineFinderPage() {
       `}</style>
     </div>
   );
+}
+
+async function resizeImage(file: File): Promise<{ data: string; type: string }> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      resolve({ data: dataUrl.split(",")[1], type: "image/jpeg" });
+    };
+    img.src = url;
+  });
 }
 
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
@@ -580,24 +653,6 @@ function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Tr
   const [shelfLoading, setShelfLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const CUTOFF = 240;
-
-  async function resizeImage(file: File): Promise<{ data: string; type: string }> {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-        resolve({ data: dataUrl.split(",")[1], type: "image/jpeg" });
-      };
-      img.src = url;
-    });
-  }
 
   async function handleShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
