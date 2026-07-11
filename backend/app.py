@@ -91,7 +91,20 @@ def list_wines():
     return jsonify(results)
 
 
-def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_price: float | None, exclude_ids: list[int] | None = None):
+@app.route("/api/countries", methods=["GET"])
+def list_countries():
+    conn   = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT DISTINCT country FROM wines WHERE in_stock = TRUE AND country IS NOT NULL AND country != '' ORDER BY country"
+    )
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify({"countries": [r[0] for r in rows]})
+
+
+def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_price: float | None, exclude_ids: list[int] | None = None, country: str | None = None):
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
@@ -122,6 +135,9 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
     if max_price:
         query += " AND w.price_dkk <= %s"
         params.append(max_price)
+    if country:
+        query += " AND w.country = %s"
+        params.append(country)
     if exclude_ids:
         placeholders = ", ".join(["%s"] * len(exclude_ids))
         query += f" AND w.id NOT IN ({placeholders})"
@@ -200,6 +216,7 @@ def search_wines():
     q         = request.args.get("q", "").strip()
     wine_type = request.args.get("wine_type")
     max_price = request.args.get("max_price", type=float)
+    country   = request.args.get("country")
 
     if not q:
         return jsonify({"picks": []})
@@ -221,6 +238,9 @@ def search_wines():
     if max_price:
         query += " AND price_dkk <= %s"
         params.append(max_price)
+    if country:
+        query += " AND country = %s"
+        params.append(country)
 
     query += " ORDER BY title LIMIT 12"
 
@@ -236,14 +256,15 @@ def search_wines():
 @app.route("/api/recommend", methods=["POST"])
 def recommend():
     data = request.get_json(force=True)
-    occasion = data.get("occasion", "")
-    flavor = data.get("flavor", "frugtig")
-    wine_type = data.get("wine_type")
-    max_price = data.get("max_price")
+    occasion    = data.get("occasion", "")
+    flavor      = data.get("flavor", "frugtig")
+    wine_type   = data.get("wine_type")
+    max_price   = data.get("max_price")
     exclude_ids = data.get("exclude_ids", [])
-    language = data.get("language", "da")
+    language    = data.get("language", "da")
+    country     = data.get("country")
 
-    candidates = fetch_candidates(occasion, flavor, wine_type, max_price, exclude_ids)
+    candidates = fetch_candidates(occasion, flavor, wine_type, max_price, exclude_ids, country)
 
     if not candidates:
         return jsonify({"picks": [], "message": "Ingen vine matchede dine kriterier."})

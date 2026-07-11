@@ -83,6 +83,8 @@ const T = {
     ],
     refineSearch:       "Tilpas søgning",
     resetFilters:       "Nulstil",
+    sectionCountry:     "Land",
+    countryAll:         "Alle lande",
     sectionSimilar:     "Find lignende vine",
     similarSub:         "Kender du en vin du er glad for? Skriv navnet og vi finder vine der minder om den.",
     similarPlaceholder: "f.eks. Barolo, Sancerre, Krebs...",
@@ -162,6 +164,8 @@ const T = {
     ],
     refineSearch:       "Refine search",
     resetFilters:       "Reset",
+    sectionCountry:     "Country",
+    countryAll:         "All countries",
     sectionSimilar:     "Find similar wines",
     similarSub:         "Know a wine you love? Enter its name and we'll find wines that taste like it.",
     similarPlaceholder: "e.g. Barolo, Sancerre, Krebs...",
@@ -216,6 +220,8 @@ export default function VineFinderPage() {
   const [lang,        setLang]        = useState<Lang>("da");
   const [theme,       setTheme]       = useState<Theme>("light");
   const [wineType,    setWineType]    = useState<string | null>(null);
+  const [country,     setCountry]     = useState<string | null>(null);
+  const [countries,   setCountries]   = useState<string[]>([]);
   const [occasionIdx, setOccasionIdx] = useState(0);
   const [flavorIdx,   setFlavorIdx]   = useState(0);
   const [maxPrice,    setMaxPrice]    = useState<string>("");
@@ -247,6 +253,13 @@ export default function VineFinderPage() {
     }
   }, [searchCount]);
 
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries`)
+      .then((r) => r.json())
+      .then((d) => setCountries(d.countries || []))
+      .catch(() => {});
+  }, []);
+
   const t = T[lang];
 
   async function fetchWines(excludeIds: number[] = [], append = false) {
@@ -269,6 +282,7 @@ export default function VineFinderPage() {
         const params = new URLSearchParams({ q: nameSearch.trim() });
         if (wineType) params.set("wine_type", wineType);
         if (maxPrice) params.set("max_price", maxPrice);
+        if (country)  params.set("country", country);
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search?${params}`);
         const data = await res.json();
         newPicks = (data.picks || []) as WineItem[];
@@ -283,6 +297,7 @@ export default function VineFinderPage() {
             occasion:    occasionKey,
             flavor:      flavorKey,
             wine_type:   wineType ?? undefined,
+            country:     country ?? undefined,
             max_price:   maxPrice ? Number(maxPrice) : undefined,
             exclude_ids: excludeIds,
             language:    lang,
@@ -336,6 +351,7 @@ export default function VineFinderPage() {
 
   function handleReset() {
     setWineType(null);
+    setCountry(null);
     setOccasionIdx(0);
     setFlavorIdx(0);
     setMaxPrice("");
@@ -440,6 +456,7 @@ export default function VineFinderPage() {
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
                 {([
                   wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
+                  country,
                   t.occasions[occasionIdx],
                   t.flavors[flavorIdx].label,
                   maxPrice ? `max ${maxPrice} kr` : null,
@@ -497,6 +514,34 @@ export default function VineFinderPage() {
 
               <Divider />
 
+              {/* Country */}
+              {countries.length > 0 && (
+                <>
+                  <Section label={t.sectionCountry}>
+                    <div className="type-chips-row">
+                      <button
+                        onClick={() => setCountry(null)}
+                        className={`chip${country === null ? " active" : ""}`}
+                        style={chipStyle(country === null)}
+                      >
+                        {t.countryAll}
+                      </button>
+                      {countries.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setCountry(country === c ? null : c)}
+                          className={`chip${country === c ? " active" : ""}`}
+                          style={chipStyle(country === c)}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </Section>
+                  <Divider />
+                </>
+              )}
+
               {/* Flavor */}
               <Section label={t.sectionFlavor}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -536,7 +581,7 @@ export default function VineFinderPage() {
                   {loading ? <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> : <ArrowRight size={16} />}
                   {loading ? t.searching : t.findBtn}
                 </button>
-                {(wineType !== null || occasionIdx !== 0 || flavorIdx !== 0 || maxPrice !== "" || nameSearch !== "") && (
+                {(wineType !== null || country !== null || occasionIdx !== 0 || flavorIdx !== 0 || maxPrice !== "" || nameSearch !== "") && (
                   <button onClick={handleReset} className="reset-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 500, color: "var(--text-mid)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
                     <X size={13} />{t.resetFilters}
                   </button>
@@ -544,6 +589,7 @@ export default function VineFinderPage() {
                 <div style={{ flex: "1 1 100%", display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginTop: 4 }}>
                   {([
                     wineType ? t.wineTypes.find((w) => w.value === wineType)?.label : null,
+                    country,
                     t.occasions[occasionIdx],
                     t.flavors[flavorIdx].label,
                     maxPrice ? `max ${maxPrice} kr` : null,
