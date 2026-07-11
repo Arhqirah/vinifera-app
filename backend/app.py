@@ -268,5 +268,56 @@ def recommend():
     return jsonify({"picks": enriched_picks})
 
 
+@app.route("/api/find-on-shelf", methods=["POST"])
+def find_on_shelf():
+    data = request.get_json(force=True)
+    image_b64 = data.get("image")
+    image_type = data.get("image_type", "image/jpeg")
+    wine_names = data.get("wine_names", [])
+    language = data.get("language", "da")
+
+    if not image_b64 or not wine_names:
+        return jsonify({"error": "Manglende billede eller vine"}), 400
+
+    names_str = "\n".join(f"- {name}" for name in wine_names)
+    if language == "en":
+        prompt = (
+            f"This is a photo of a wine shelf. The customer is looking for:\n{names_str}\n\n"
+            "Can you see any of these wines on the shelf? For each wine you can spot, describe "
+            "briefly where it is (e.g. '2nd shelf from top, 4th bottle from left'). "
+            "If none are visible, say so kindly."
+        )
+    else:
+        prompt = (
+            f"Dette er et billede af en vinhylde. Kunden leder efter:\n{names_str}\n\n"
+            "Kan du se nogen af disse vine på hylden? Beskriv kort og præcist hvor hver "
+            "synlig vin befinder sig (f.eks. '2. hylde fra toppen, 4. flaske fra venstre'). "
+            "Hvis ingen er synlige, sig det venligt."
+        )
+
+    try:
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": image_type,
+                            "data": image_b64,
+                        },
+                    },
+                    {"type": "text", "text": prompt},
+                ],
+            }],
+        )
+        return jsonify({"result": response.content[0].text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=int(os.environ.get("PORT", 5000)))

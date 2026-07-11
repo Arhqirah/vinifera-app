@@ -6,7 +6,7 @@ import {
   Heart, PartyPopper, UtensilsCrossed, Grape, Droplets,
   ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
   Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
-  Moon, Sun,
+  Moon, Sun, Camera,
 } from "lucide-react";
 
 type Lang = "da" | "en";
@@ -40,6 +40,9 @@ const T = {
     readMore:          "Læs mere",
     readLess:          "Vis mindre",
     footerSub:         "Vinspecialisten i Birkerød",
+    shelfBtn:          "Find på hylden",
+    shelfScanning:     "Scanner hylden...",
+    shelfNote:         "Tag et billede af vinhylden — Claude finder dine vine",
     wineTypes: [
       { label: "Alle",        value: null },
       { label: "Rødvin",      value: "Rødvin" },
@@ -97,6 +100,9 @@ const T = {
     readMore:          "Read more",
     readLess:          "Show less",
     footerSub:         "Wine specialist in Birkerød",
+    shelfBtn:          "Find on shelf",
+    shelfScanning:     "Scanning shelf...",
+    shelfNote:         "Take a photo of the wine shelf — Claude will find your wines",
     wineTypes: [
       { label: "All",           value: null },
       { label: "Red wine",      value: "Rødvin" },
@@ -178,7 +184,10 @@ export default function VineFinderPage() {
   const [error,       setError]       = useState<string | null>(null);
   const [searched,    setSearched]    = useState(false);
   const [searchCount, setSearchCount] = useState(0);
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const [shelfResult,  setShelfResult]  = useState<string | null>(null);
+  const [shelfLoading, setShelfLoading] = useState(false);
+  const resultsRef  = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (searchCount > 0) {
@@ -187,6 +196,47 @@ export default function VineFinderPage() {
   }, [searchCount]);
 
   const t = T[lang];
+
+  async function resizeImage(file: File): Promise<{ data: string; type: string }> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const maxDim = 1600;
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve({ data: dataUrl.split(",")[1], type: "image/jpeg" });
+      };
+      img.src = url;
+    });
+  }
+
+  async function handleShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setShelfLoading(true);
+    setShelfResult(null);
+    try {
+      const { data, type } = await resizeImage(file);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find-on-shelf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: data, image_type: type, wine_names: picks.map((w) => w.title), language: lang }),
+      });
+      const json = await res.json();
+      setShelfResult(json.result ?? json.error ?? "Ukendt fejl");
+    } catch {
+      setShelfResult(lang === "da" ? "Kunne ikke scanne hylden. Prøv igen." : "Could not scan the shelf. Try again.");
+    } finally {
+      setShelfLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
 
   async function fetchWines(excludeIds: number[] = [], append = false) {
     if (append) setLoadingMore(true);
@@ -224,7 +274,7 @@ export default function VineFinderPage() {
       }
 
       if (append) setPicks((p) => [...p, ...newPicks]);
-      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); }
+      else { setPicks(newPicks); setSearched(true); setSearchCount((c) => c + 1); setShelfResult(null); }
     } catch {
       setError(t.errorMsg);
     } finally {
@@ -417,6 +467,37 @@ export default function VineFinderPage() {
                 <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
               ))}
             </div>
+
+            {picks.length > 0 && (
+              <div style={{ textAlign: "center", marginTop: 24 }}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  style={{ display: "none" }}
+                  onChange={handleShelfScan}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={shelfLoading}
+                  className="more-btn"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8, backgroundColor: "var(--card-bg)", color: "var(--text)", border: "1.5px solid var(--border)", borderRadius: 8, padding: "12px 28px", fontSize: 15, fontWeight: 600, cursor: shelfLoading ? "not-allowed" : "pointer", opacity: shelfLoading ? 0.6 : 1, boxShadow: "0 1px 4px var(--card-shadow)" }}
+                >
+                  {shelfLoading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Camera size={15} />}
+                  {shelfLoading ? t.shelfScanning : t.shelfBtn}
+                </button>
+                <p style={{ fontSize: 12, color: "var(--text-mid)", marginTop: 6 }}>{t.shelfNote}</p>
+                {shelfResult && (
+                  <div style={{ marginTop: 16, backgroundColor: "var(--card-bg)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", textAlign: "left", boxShadow: "0 2px 10px var(--card-shadow)" }}>
+                    <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                      <Camera size={16} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.7, margin: 0 }}>{shelfResult}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {picks.length > 0 && hasMore && (
               <div style={{ textAlign: "center", marginTop: 24 }}>
