@@ -52,6 +52,7 @@ const T = {
       { label: "Hedvin",      value: "Hedvin" },
       { label: "Gin",         value: "Gin" },
       { label: "Whisky",      value: "Whisky" },
+      { label: "Rom",         value: "Rom" },
       { label: "Spiritus",    value: "Spiritus" },
       { label: "Alkoholfri",  value: "Alkoholfri" },
     ],
@@ -108,6 +109,7 @@ const T = {
       { label: "Fortified",     value: "Hedvin" },
       { label: "Gin",           value: "Gin" },
       { label: "Whisky",        value: "Whisky" },
+      { label: "Rum",           value: "Rom" },
       { label: "Spirits",       value: "Spiritus" },
       { label: "Alcohol-free",  value: "Alkoholfri" },
     ],
@@ -134,7 +136,7 @@ const OCCASION_ICONS = [
 
 const TYPE_ICONS = [
   Wine, Wine, GlassWater, Flower2, Sparkles,
-  Droplets, Grape, Coffee, Grape, GlassWater, Coffee, Droplets, GlassWater,
+  Droplets, Grape, Coffee, Grape, GlassWater, Coffee, Droplets, Droplets, GlassWater,
 ];
 
 type WineItem = {
