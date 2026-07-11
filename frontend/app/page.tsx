@@ -43,6 +43,8 @@ const T = {
     shelfBtn:          "Find på hylden",
     shelfScanning:     "Scanner hylden...",
     shelfNote:         "Tag et billede af vinhylden — Claude finder dine vine",
+    tasteLabel:        "Smagsprofil",
+    tasteKeys:         ["Frugtig", "Krop", "Sødme", "Syre", "Tannin"] as const,
     wineTypes: [
       { label: "Alle",        value: null },
       { label: "Rødvin",      value: "Rødvin" },
@@ -103,6 +105,8 @@ const T = {
     shelfBtn:          "Find on shelf",
     shelfScanning:     "Scanning shelf...",
     shelfNote:         "Take a photo of the wine shelf — Claude will find your wines",
+    tasteLabel:        "Taste profile",
+    tasteKeys:         ["Fruity", "Body", "Sweetness", "Acidity", "Tannin"] as const,
     wineTypes: [
       { label: "All",           value: null },
       { label: "Red wine",      value: "Rødvin" },
@@ -156,6 +160,11 @@ type WineItem = {
   product_url: string;
   description: string;
   reason: string | null;
+  fruitiness: number | null;
+  body: number | null;
+  sweetness: number | null;
+  acidity: number | null;
+  tannin: number | null;
 };
 
 function chipStyle(active: boolean): React.CSSProperties {
@@ -678,6 +687,28 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
               <div>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", display: "block", marginBottom: 3 }}>{t.recLabel}</span>
                 <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.65, fontStyle: "italic", margin: 0 }}>&ldquo;{wine.reason}&rdquo;</p>
+              </div>
+            </div>
+          )}
+          {[wine.fruitiness, wine.body, wine.sweetness, wine.acidity, wine.tannin].some((v) => v != null && v > 0) && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <Droplets size={14} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", display: "block", marginBottom: 6 }}>{t.tasteLabel}</span>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "4px 10px", alignItems: "center" }}>
+                  {([wine.fruitiness, wine.body, wine.sweetness, wine.acidity, wine.tannin] as (number | null)[]).map((score, i) => (
+                    score != null ? (
+                      <>
+                        <span key={`label-${i}`} style={{ fontSize: 11, color: "var(--text-mid)", fontWeight: 500, whiteSpace: "nowrap" }}>{t.tasteKeys[i]}</span>
+                        <div key={`bar-${i}`} style={{ display: "flex", gap: 3 }}>
+                          {[1,2,3,4,5].map((dot) => (
+                            <div key={dot} style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: dot <= score ? "var(--primary-bg)" : "var(--border)" }} />
+                          ))}
+                        </div>
+                      </>
+                    ) : null
+                  ))}
+                </div>
               </div>
             </div>
           )}
