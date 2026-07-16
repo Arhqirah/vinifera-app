@@ -62,6 +62,27 @@ FLAVOR_TO_COLUMN = {
     "crisp": ("acidity", "desc"),
 }
 
+# Maps food-pairing occasions to the wine types that suit them best.
+# When one of these occasions is selected, the tag filter is skipped and
+# candidates are pre-filtered by these wine types instead.
+FOOD_PAIRING_MAP = {
+    "sushi":     ["Hvidvin", "Mousserende", "Champagne", "Rosévin"],
+    "kød":       ["Rødvin"],
+    "vegansk":   ["Hvidvin", "Rosévin", "Mousserende", "Champagne"],
+    "skaldyr":   ["Hvidvin", "Mousserende", "Champagne"],
+    "pasta":     ["Rødvin", "Hvidvin"],
+    "ost":       ["Rødvin", "Hvidvin", "Portvin", "Dessertvin"],
+    "vildt":     ["Rødvin"],
+    "asiatisk":  ["Hvidvin", "Rosévin", "Mousserende", "Champagne"],
+    # English equivalents
+    "meat":      ["Rødvin"],
+    "vegan":     ["Hvidvin", "Rosévin", "Mousserende", "Champagne"],
+    "shellfish": ["Hvidvin", "Mousserende", "Champagne"],
+    "cheese":    ["Rødvin", "Hvidvin", "Portvin", "Dessertvin"],
+    "game":      ["Rødvin"],
+    "asian":     ["Hvidvin", "Rosévin", "Mousserende", "Champagne"],
+}
+
 
 COUNTRY_CANON = {
     "frankrig": "Frankrig",
@@ -194,7 +215,17 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
     """
     params = []
 
-    if occasion:
+    is_food_pairing = occasion and occasion.lower() in FOOD_PAIRING_MAP
+    if is_food_pairing:
+        # Food-pairing occasion: skip tag filter, pre-filter by suitable wine types
+        # (only when the user hasn't already chosen a specific type)
+        if not wine_type:
+            pairing_types = FOOD_PAIRING_MAP[occasion.lower()]
+            placeholders = ", ".join(["%s"] * len(pairing_types))
+            query += f" AND w.wine_type IN ({placeholders})"
+            params.extend(pairing_types)
+    elif occasion:
+        # Event/activity occasion: match against the tags table
         query += " AND (t.name = %s OR t.name IS NULL)"
         params.append(occasion)
     if wine_type:
