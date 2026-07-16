@@ -882,19 +882,19 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
               <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1, fontFamily: "var(--font-heading)", letterSpacing: 0.1 }}>{wine.title}</h3>
               <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{wine.price_dkk} kr</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, margin: "0 0 12px", lineHeight: 1.4 }}>
+            <p style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, margin: "0 0 8px", lineHeight: 1.4 }}>
               {[wine.producer, wine.country, wine.wine_type].filter(Boolean).join(" · ")}
             </p>
+            {wine.sektion && (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--sidebar-bg)", border: "1px solid var(--border)", borderRadius: 20, padding: "3px 10px", marginBottom: 8 }}>
+                📍 {wine.sektion}
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px" }}>
               <ExternalLink size={12} />{t.buyBtn}
             </a>
-            {wine.sektion && (
-              <span style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                📍 {wine.sektion}
-              </span>
-            )}
           </div>
         </div>
       </div>
