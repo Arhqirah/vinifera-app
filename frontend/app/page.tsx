@@ -6,7 +6,7 @@ import {
   Heart, PartyPopper, UtensilsCrossed, Grape, Droplets,
   ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
   Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
-  Moon, Sun, Camera, X, SlidersHorizontal,
+  Moon, Sun, X, SlidersHorizontal,
   Fish, Beef, Leaf, Shell, Wheat,
   Milk, Rabbit, Soup,
 } from "lucide-react";
@@ -42,9 +42,7 @@ const T = {
     readMore:          "Læs mere",
     readLess:          "Vis mindre",
     footerSub:         "Vinspecialisten i Birkerød",
-    shelfBtn:          "Find på hylden",
-    shelfScanning:     "Scanner hylden...",
-    shelfNote:         "Tag et billede af vinhylden — Claude finder dine vine",
+    sektionLabel:      "Find vinen",
     tasteLabel:        "Smagsprofil",
     tasteKeys:         ["Frugtig", "Krop", "Sødme", "Syre", "Tannin"] as const,
     wineTypes: [
@@ -124,9 +122,7 @@ const T = {
     readMore:          "Read more",
     readLess:          "Show less",
     footerSub:         "Wine specialist in Birkerød",
-    shelfBtn:          "Find on shelf",
-    shelfScanning:     "Scanning shelf...",
-    shelfNote:         "Take a photo of the wine shelf — Claude will find your wines",
+    sektionLabel:      "Find the wine",
     tasteLabel:        "Taste profile",
     tasteKeys:         ["Fruity", "Body", "Sweetness", "Acidity", "Tannin"] as const,
     wineTypes: [
@@ -204,6 +200,7 @@ type WineItem = {
   product_url: string;
   description: string;
   reason: string | null;
+  sektion: string | null;
   fruitiness: number | null;
   body: number | null;
   sweetness: number | null;
@@ -240,9 +237,6 @@ export default function VineFinderPage() {
   const [searched,    setSearched]    = useState(false);
   const [searchCount, setSearchCount] = useState(0);
   const resultsRef      = useRef<HTMLDivElement>(null);
-  const pageFileRef     = useRef<HTMLInputElement>(null);
-  const [pageShelfResult,  setPageShelfResult]  = useState<string | null>(null);
-  const [pageShelfLoading, setPageShelfLoading] = useState(false);
   const [formOpen,         setFormOpen]         = useState(true);
   const [similarName,     setSimilarName]     = useState("");
   const [similarLoading,  setSimilarLoading]  = useState(false);
@@ -277,7 +271,6 @@ export default function VineFinderPage() {
       setSearched(true);
       setPicks([]);
       setFormOpen(false);
-      setPageShelfResult(null);
       setSearchCount((c) => c + 1);
     }
 
@@ -365,30 +358,7 @@ export default function VineFinderPage() {
     setSearched(false);
     setPicks([]);
     setError(null);
-    setPageShelfResult(null);
     setFormOpen(true);
-  }
-
-  async function handlePageShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPageShelfLoading(true);
-    setPageShelfResult(null);
-    try {
-      const { data, type } = await resizeImage(file);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find-on-shelf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: data, image_type: type, wine_names: picks.map((w) => w.title), language: lang }),
-      });
-      const json = await res.json();
-      setPageShelfResult(json.result ?? json.error ?? "Ukendt fejl");
-    } catch {
-      setPageShelfResult(lang === "da" ? "Kunne ikke scanne hylden. Prøv igen." : "Could not scan the shelf. Try again.");
-    } finally {
-      setPageShelfLoading(false);
-      if (pageFileRef.current) pageFileRef.current.value = "";
-    }
   }
 
   return (
@@ -632,33 +602,18 @@ export default function VineFinderPage() {
               </div>
             )}
             {!loading && picks.length > 0 && (
-              <>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
-                  <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>{t.resultsCount(picks.length)}</h2>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <input ref={pageFileRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handlePageShelfScan} />
-                    <button onClick={() => pageFileRef.current?.click()} disabled={pageShelfLoading} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", cursor: pageShelfLoading ? "not-allowed" : "pointer", opacity: pageShelfLoading ? 0.6 : 1 }}>
-                      {pageShelfLoading ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Camera size={12} />}
-                      {pageShelfLoading ? t.shelfScanning : t.shelfBtn}
-                    </button>
-                    <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                      <RefreshCw size={13} />{t.searchAgain}
-                    </button>
-                  </div>
-                </div>
-                {pageShelfResult && (
-                  <div style={{ marginBottom: 16, backgroundColor: "var(--sidebar-bg)", borderRadius: 8, padding: "12px 16px", display: "flex", gap: 8, alignItems: "flex-start" }}>
-                    <Camera size={14} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
-                    <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{pageShelfResult}</p>
-                  </div>
-                )}
-              </>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>{t.resultsCount(picks.length)}</h2>
+                <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                  <RefreshCw size={13} />{t.searchAgain}
+                </button>
+              </div>
             )}
 
             {!loading && (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {picks.map((wine, i) => (
-                  <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} lang={lang} />
+                  <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
                 ))}
               </div>
             )}
@@ -730,7 +685,7 @@ export default function VineFinderPage() {
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>{t.similarRef(similarRefTitle)}</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {similarPicks.map((wine, i) => (
-                    <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} lang={lang} />
+                    <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
                   ))}
                 </div>
               </>
@@ -905,34 +860,9 @@ function Divider() {
 
 type Translations = typeof T[Lang];
 
-function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Translations; lang: Lang }) {
-  const [expanded,     setExpanded]     = useState(false);
-  const [shelfResult,  setShelfResult]  = useState<string | null>(null);
-  const [shelfLoading, setShelfLoading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translations }) {
+  const [expanded, setExpanded] = useState(false);
   const CUTOFF = 240;
-
-  async function handleShelfScan(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setShelfLoading(true);
-    setShelfResult(null);
-    try {
-      const { data, type } = await resizeImage(file);
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/find-on-shelf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: data, image_type: type, wine_names: [wine.title], language: lang }),
-      });
-      const json = await res.json();
-      setShelfResult(json.result ?? json.error ?? "Ukendt fejl");
-    } catch {
-      setShelfResult(lang === "da" ? "Kunne ikke scanne hylden. Prøv igen." : "Could not scan the shelf. Try again.");
-    } finally {
-      setShelfLoading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  }
   return (
     <div className="wine-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 12px var(--card-shadow)" }}>
       <div style={{ display: "flex" }}>
@@ -956,22 +886,16 @@ function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Tr
               {[wine.producer, wine.country, wine.wine_type].filter(Boolean).join(" · ")}
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px" }}>
               <ExternalLink size={12} />{t.buyBtn}
             </a>
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleShelfScan} />
-            <button onClick={() => fileInputRef.current?.click()} disabled={shelfLoading} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px", cursor: shelfLoading ? "not-allowed" : "pointer", opacity: shelfLoading ? 0.6 : 1 }}>
-              {shelfLoading ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Camera size={12} />}
-              {shelfLoading ? t.shelfScanning : t.shelfBtn}
-            </button>
+            {wine.sektion && (
+              <span style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                📍 {wine.sektion}
+              </span>
+            )}
           </div>
-          {shelfResult && (
-            <div style={{ marginTop: 10, backgroundColor: "var(--sidebar-bg)", borderRadius: 8, padding: "10px 14px", display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <Camera size={13} color="var(--text-mid)" style={{ flexShrink: 0, marginTop: 2 }} />
-              <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, margin: 0 }}>{shelfResult}</p>
-            </div>
-          )}
         </div>
       </div>
 

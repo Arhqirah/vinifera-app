@@ -22,6 +22,7 @@ CREATE TABLE wines (
     image_url       VARCHAR(500),
     product_url     VARCHAR(500),
     in_stock        BOOLEAN DEFAULT TRUE,
+    sektion         VARCHAR(100),                   -- physical shelf location, e.g. "Reol 1 · Hylde 3"
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     -- Derived taste profile (0-5 scale), filled in by the tagging step after scraping

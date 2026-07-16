@@ -546,55 +546,49 @@ def find_similar():
     return jsonify({"picks": enriched, "reference": {"title": ref["title"]}})
 
 
-@app.route("/api/find-on-shelf", methods=["POST"])
-def find_on_shelf():
+
+@app.route("/api/admin/wines", methods=["GET"])
+def admin_list_wines():
+    search = request.args.get("q", "").strip()
+    sektion = request.args.get("sektion", "").strip()
+
+    query = "SELECT id, title, producer, wine_type, country, price_dkk, sektion FROM wines WHERE 1=1"
+    params = []
+    if search:
+        query += " AND (title LIKE %s OR producer LIKE %s)"
+        like = f"%{search}%"
+        params.extend([like, like])
+    if sektion == "__none__":
+        query += " AND (sektion IS NULL OR sektion = '')"
+    elif sektion:
+        query += " AND sektion = %s"
+        params.append(sektion)
+    query += " ORDER BY sektion IS NULL DESC, sektion, title LIMIT 200"
+
+    conn = get_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(query, params)
+    wines = cursor.fetchall()
+
+    cursor.execute("SELECT DISTINCT sektion FROM wines WHERE sektion IS NOT NULL AND sektion != '' ORDER BY sektion")
+    sektioner = [r["sektion"] for r in cursor.fetchall()]
+
+    cursor.close()
+    conn.close()
+    return jsonify({"wines": wines, "sektioner": sektioner})
+
+
+@app.route("/api/admin/wines/<int:wine_id>", methods=["PATCH"])
+def admin_update_sektion(wine_id):
     data = request.get_json(force=True)
-    image_b64 = data.get("image")
-    image_type = data.get("image_type", "image/jpeg")
-    wine_names = data.get("wine_names", [])
-    language = data.get("language", "da")
-
-    if not image_b64 or not wine_names:
-        return jsonify({"error": "Manglende billede eller vine"}), 400
-
-    names_str = "\n".join(f"- {name}" for name in wine_names)
-    if language == "en":
-        prompt = (
-            f"This is a photo of a wine shelf. The customer is looking for:\n{names_str}\n\n"
-            "Can you see any of these wines on the shelf? For each wine you can spot, describe "
-            "briefly where it is (e.g. '2nd shelf from top, 4th bottle from left'). "
-            "If none are visible, say so kindly."
-        )
-    else:
-        prompt = (
-            f"Dette er et billede af en vinhylde. Kunden leder efter:\n{names_str}\n\n"
-            "Kan du se nogen af disse vine på hylden? Beskriv kort og præcist hvor hver "
-            "synlig vin befinder sig (f.eks. '2. hylde fra toppen, 4. flaske fra venstre'). "
-            "Hvis ingen er synlige, sig det venligt."
-        )
-
-    try:
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=400,
-            messages=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "source": {
-                            "type": "base64",
-                            "media_type": image_type,
-                            "data": image_b64,
-                        },
-                    },
-                    {"type": "text", "text": prompt},
-                ],
-            }],
-        )
-        return jsonify({"result": response.content[0].text})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    sektion = data.get("sektion", "").strip() or None
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE wines SET sektion = %s WHERE id = %s", (sektion, wine_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"ok": True})
 
 
 if __name__ == "__main__":
