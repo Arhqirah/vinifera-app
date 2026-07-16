@@ -208,7 +208,7 @@ type WineItem = {
 function chipStyle(active: boolean): React.CSSProperties {
   return {
     display: "inline-flex", alignItems: "center", gap: 6,
-    padding: "8px 14px", borderRadius: 8,
+    padding: "8px 16px", borderRadius: 100,
     border: `1.5px solid ${active ? "var(--primary-bg)" : "var(--border)"}`,
     backgroundColor: active ? "var(--primary-bg)" : "var(--chip-bg)",
     color: active ? "var(--primary-text)" : "var(--chip-text)",
@@ -435,12 +435,12 @@ export default function VineFinderPage() {
       </header>
 
       {/* Hero */}
-      <div style={{ backgroundColor: "var(--nav-bg)", padding: "52px 24px 60px" }}>
+      <div style={{ backgroundColor: "var(--nav-bg)", padding: "56px 24px 68px" }}>
         <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
-          <h1 className="hero-title" style={{ color: "var(--nav-text)", fontSize: 38, fontWeight: 700, marginBottom: 14, lineHeight: 1.2, letterSpacing: -0.5 }}>
+          <h1 className="hero-title" style={{ color: "var(--nav-text)", fontSize: 46, fontWeight: 600, marginBottom: 16, lineHeight: 1.15, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
             {t.heroTitle}
           </h1>
-          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.75, maxWidth: 460, margin: "0 auto" }}>
+          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.8, maxWidth: 440, margin: "0 auto", fontWeight: 400, letterSpacing: 0.1 }}>
             {t.heroSub}
           </p>
         </div>
@@ -448,7 +448,7 @@ export default function VineFinderPage() {
 
       {/* Form card */}
       <div style={{ maxWidth: 860, margin: "-28px auto 0", padding: "0 20px 60px" }}>
-        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 16, boxShadow: "0 4px 24px var(--card-shadow)", padding: "32px 28px", marginBottom: 32 }}>
+        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 8px 32px var(--card-shadow)", padding: "36px 32px", marginBottom: 32 }}>
 
           {searched && !formOpen ? (
             /* Collapsed state */
@@ -748,82 +748,82 @@ export default function VineFinderPage() {
 
       <style>{`
         [data-theme="light"] {
-          --page-bg:           #FAF7F2;
-          --nav-bg:            #2C1810;
-          --nav-text:          #E8D5B7;
+          --page-bg:           #F7F2EB;
+          --nav-bg:            #241510;
+          --nav-text:          #EAD9BC;
           --nav-mid:           #8B6B4A;
-          --hero-sub:          #A08060;
-          --card-bg:           #FFFFFF;
-          --card-shadow:       rgba(44,24,16,0.10);
-          --sidebar-bg:        #F5EFE8;
-          --input-bg:          #FAF7F2;
-          --primary-bg:        #2C1810;
-          --primary-text:      #E8D5B7;
-          --primary-hover-bg:  #3D2010;
-          --text:              #2C1810;
+          --hero-sub:          #A8885F;
+          --card-bg:           #FEFCF8;
+          --card-shadow:       rgba(44,24,16,0.08);
+          --sidebar-bg:        #F2EAE0;
+          --input-bg:          #F7F2EB;
+          --primary-bg:        #241510;
+          --primary-text:      #EAD9BC;
+          --primary-hover-bg:  #3A1F10;
+          --text:              #241510;
           --text-mid:          #8B6B4A;
           --text-sub:          #4A3728;
-          --border:            #EDE5DB;
-          --chip-bg:           #FAF7F2;
+          --border:            #E2D5C3;
+          --chip-bg:           #F7F2EB;
           --chip-text:         #3D2B1F;
-          --chip-hover-bg:     #F5EFE8;
-          --chip-hover-border: #2C1810;
-          --buy-btn-bg:        #F5EFE8;
-          --buy-hover-bg:      #EDE0D0;
-          --buy-hover-border:  #2C1810;
-          --more-hover-bg:     #F5EFE8;
-          --reset-hover-text:  #2C1810;
-          --reset-hover-bg:    #F5EFE8;
+          --chip-hover-bg:     #EEE5D8;
+          --chip-hover-border: #241510;
+          --buy-btn-bg:        #F2EAE0;
+          --buy-hover-bg:      #E8DDD0;
+          --buy-hover-border:  #241510;
+          --more-hover-bg:     #F2EAE0;
+          --reset-hover-text:  #241510;
+          --reset-hover-bg:    #F2EAE0;
         }
         [data-theme="dark"] {
-          --page-bg:           #130A06;
-          --nav-bg:            #0D0603;
-          --nav-text:          #E8D5B7;
+          --page-bg:           #110905;
+          --nav-bg:            #0C0503;
+          --nav-text:          #EAD9BC;
           --nav-mid:           #7A5A3A;
           --hero-sub:          #7A5A3A;
-          --card-bg:           #2C1810;
-          --card-shadow:       rgba(0,0,0,0.35);
-          --sidebar-bg:        #1E0D07;
-          --input-bg:          #1A0D08;
-          --primary-bg:        #E8D5B7;
-          --primary-text:      #2C1810;
+          --card-bg:           #291408;
+          --card-shadow:       rgba(0,0,0,0.40);
+          --sidebar-bg:        #1C0C07;
+          --input-bg:          #180B06;
+          --primary-bg:        #EAD9BC;
+          --primary-text:      #241510;
           --primary-hover-bg:  #D4C3A3;
-          --text:              #E8D5B7;
+          --text:              #EAD9BC;
           --text-mid:          #A08060;
           --text-sub:          #C4A882;
-          --border:            #3D2B1F;
-          --chip-bg:           #1A0D08;
+          --border:            #3A2318;
+          --chip-bg:           #180B06;
           --chip-text:         #C4A882;
-          --chip-hover-bg:     #231208;
+          --chip-hover-bg:     #221108;
           --chip-hover-border: #C4A882;
-          --buy-btn-bg:        #1A0D08;
-          --buy-hover-bg:      #3D2B1F;
+          --buy-btn-bg:        #180B06;
+          --buy-hover-bg:      #3A2318;
           --buy-hover-border:  #C4A882;
-          --more-hover-bg:     #231208;
-          --reset-hover-text:  #E8D5B7;
-          --reset-hover-bg:    #231208;
+          --more-hover-bg:     #221108;
+          --reset-hover-text:  #EAD9BC;
+          --reset-hover-bg:    #221108;
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         .skeleton { background: linear-gradient(90deg, var(--border) 25%, var(--chip-hover-bg) 50%, var(--border) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-        .chip { transition: all 0.15s ease; }
-        .chip:not(.active):hover { border-color: var(--chip-hover-border)!important; background-color: var(--chip-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+        .chip { transition: all 0.2s ease; }
+        .chip:not(.active):hover { border-color: var(--chip-hover-border)!important; background-color: var(--chip-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 3px 12px rgba(0,0,0,0.10); }
         .chip:not(.active):active { transform: translateY(0); }
-        .wine-card { transition: box-shadow 0.2s ease, transform 0.2s ease; }
-        .wine-card:hover { box-shadow: 0 6px 24px var(--card-shadow)!important; transform: translateY(-2px); }
-        .find-btn { transition: opacity 0.15s, transform 0.15s, background-color 0.15s; }
-        .find-btn:hover:not(:disabled) { background-color: var(--primary-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.20); }
-        .find-btn:active:not(:disabled) { transform: translateY(0); }
-        .buy-btn { transition: background-color 0.15s, border-color 0.15s, transform 0.15s; }
+        .wine-card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+        .wine-card:hover { box-shadow: 0 8px 32px var(--card-shadow)!important; transform: translateY(-3px); }
+        .find-btn { transition: opacity 0.2s, transform 0.2s, background-color 0.2s, box-shadow 0.2s; }
+        .find-btn:hover:not(:disabled) { background-color: var(--primary-hover-bg)!important; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.22); }
+        .find-btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+        .buy-btn { transition: background-color 0.2s, border-color 0.2s, transform 0.2s; }
         .buy-btn:hover { background-color: var(--buy-hover-bg)!important; border-color: var(--buy-hover-border)!important; transform: translateY(-1px); }
         .buy-btn:active { transform: translateY(0); }
-        .more-btn { transition: background-color 0.15s, box-shadow 0.15s, transform 0.15s; }
+        .more-btn { transition: background-color 0.2s, box-shadow 0.2s, transform 0.2s; }
         .more-btn:hover:not(:disabled) { background-color: var(--more-hover-bg)!important; transform: translateY(-1px); }
         .more-btn:active:not(:disabled) { transform: translateY(0); }
-        .reset-btn { transition: color 0.15s, background-color 0.15s; border-radius: 6px; padding: 4px 8px; }
+        .reset-btn { transition: color 0.2s, background-color 0.2s; border-radius: 100px; padding: 5px 10px; }
         .reset-btn:hover { color: var(--reset-hover-text)!important; background-color: var(--reset-hover-bg); }
-        .nav-icon-btn { transition: background-color 0.15s, border-color 0.15s; }
-        .nav-icon-btn:hover { background-color: rgba(232,213,183,0.2)!important; border-color: rgba(232,213,183,0.4)!important; }
+        .nav-icon-btn { transition: background-color 0.2s, border-color 0.2s; }
+        .nav-icon-btn:hover { background-color: rgba(234,217,188,0.15)!important; border-color: rgba(234,217,188,0.35)!important; }
 
         .type-chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 480px) {
@@ -833,7 +833,7 @@ export default function VineFinderPage() {
         }
         @media (max-width: 480px) {
           .nav-label { display: none !important; }
-          .hero-title { font-size: 26px !important; letter-spacing: -0.3px !important; }
+          .hero-title { font-size: 30px !important; letter-spacing: 0px !important; }
           .hero-sub { font-size: 14px !important; }
           .form-card { padding: 20px 16px !important; }
           .find-btn { width: 100% !important; justify-content: center !important; }
@@ -885,7 +885,7 @@ function SkeletonCard() {
 function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--text-mid)", marginBottom: 12 }}>
+      <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, textTransform: "uppercase", color: "var(--text-mid)", marginBottom: 14, opacity: 0.8 }}>
         {label}
       </p>
       {children}
@@ -894,7 +894,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
 }
 
 function Divider() {
-  return <div style={{ height: 1, backgroundColor: "var(--border)", margin: "24px 0" }} />;
+  return <div style={{ height: 1, backgroundColor: "var(--border)", margin: "26px 0", opacity: 0.7 }} />;
 }
 
 type Translations = typeof T[Lang];
@@ -928,7 +928,7 @@ function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Tr
     }
   }
   return (
-    <div className="wine-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 12, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 10px var(--card-shadow)" }}>
+    <div className="wine-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 12px var(--card-shadow)" }}>
       <div style={{ display: "flex" }}>
         <div className="wine-card-sidebar" style={{ width: 140, flexShrink: 0, backgroundColor: "var(--sidebar-bg)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 10px", gap: 12 }}>
           <div style={{ width: 26, height: 26, borderRadius: "50%", backgroundColor: "var(--primary-bg)", color: "var(--primary-text)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700 }}>
@@ -943,7 +943,7 @@ function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Tr
         <div style={{ flex: 1, padding: "18px 18px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1 }}>{wine.title}</h3>
+              <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1, fontFamily: "var(--font-heading)", letterSpacing: 0.1 }}>{wine.title}</h3>
               <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{wine.price_dkk} kr</span>
             </div>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, margin: "0 0 12px", lineHeight: 1.4 }}>
@@ -951,11 +951,11 @@ function WineCard({ wine, rank, t, lang }: { wine: WineItem; rank: number; t: Tr
             </p>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px" }}>
+            <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px" }}>
               <ExternalLink size={12} />{t.buyBtn}
             </a>
             <input ref={fileInputRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleShelfScan} />
-            <button onClick={() => fileInputRef.current?.click()} disabled={shelfLoading} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 6, padding: "6px 12px", cursor: shelfLoading ? "not-allowed" : "pointer", opacity: shelfLoading ? 0.6 : 1 }}>
+            <button onClick={() => fileInputRef.current?.click()} disabled={shelfLoading} className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px", cursor: shelfLoading ? "not-allowed" : "pointer", opacity: shelfLoading ? 0.6 : 1 }}>
               {shelfLoading ? <Loader2 size={12} style={{ animation: "spin 1s linear infinite" }} /> : <Camera size={12} />}
               {shelfLoading ? t.shelfScanning : t.shelfBtn}
             </button>
