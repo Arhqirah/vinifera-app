@@ -7,6 +7,8 @@ import {
   ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
   Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
   Moon, Sun, Camera, X, SlidersHorizontal,
+  Fish, Beef, Leaf, Shell, Wheat,
+  Milk, Rabbit, Soup,
 } from "lucide-react";
 
 type Lang = "da" | "en";
@@ -65,6 +67,7 @@ const T = {
       "Hverdag", "Fest", "Gave", "Romantisk middag", "Grillaften",
       "Aperitif", "Arbejdsmiddag", "Møde", "Fødselsdag",
       "Julefrokost", "Bryllup", "Filmaften", "Picnic",
+      "Sushi", "Kød", "Vegansk", "Skaldyr", "Pasta", "Ost", "Vildt", "Asiatisk",
     ],
     flavors: [
       { label: "Ved ikke", desc: "Overrask mig",       key: "overrask" },
@@ -146,6 +149,7 @@ const T = {
       "Everyday", "Party", "Gift", "Romantic dinner", "BBQ night",
       "Aperitif", "Business lunch", "Meeting", "Birthday",
       "Christmas lunch", "Wedding", "Movie night", "Picnic",
+      "Sushi", "Meat", "Vegan", "Shellfish", "Pasta", "Cheese", "Game", "Asian",
     ],
     flavors: [
       { label: "Not sure",    desc: "Surprise me",             key: "overrask" },
@@ -180,6 +184,8 @@ const T = {
 const OCCASION_ICONS = [
   UtensilsCrossed, PartyPopper, Gift, Heart, Flame,
   Coffee, Briefcase, Users, Cake, Snowflake, Star, Tv2, TreePine,
+  Fish, Beef, Leaf, Shell, Wheat,
+  Milk, Rabbit, Soup,
 ];
 
 const TYPE_ICONS = [
