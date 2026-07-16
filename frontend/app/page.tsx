@@ -257,7 +257,7 @@ export default function VineFinderPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries`)
       .then((r) => r.json())
       .then((d) => setCountries(d.countries || []))
-      .catch(() => {});
+      .catch((e) => console.error("Failed to fetch countries:", e));
   }, []);
 
   const t = T[lang];
@@ -515,32 +515,29 @@ export default function VineFinderPage() {
               <Divider />
 
               {/* Country */}
-              {countries.length > 0 && (
-                <>
-                  <Section label={t.sectionCountry}>
-                    <div className="type-chips-row">
-                      <button
-                        onClick={() => setCountry(null)}
-                        className={`chip${country === null ? " active" : ""}`}
-                        style={chipStyle(country === null)}
-                      >
-                        {t.countryAll}
-                      </button>
-                      {countries.map((c) => (
-                        <button
-                          key={c}
-                          onClick={() => setCountry(country === c ? null : c)}
-                          className={`chip${country === c ? " active" : ""}`}
-                          style={chipStyle(country === c)}
-                        >
-                          {c}
-                        </button>
-                      ))}
-                    </div>
-                  </Section>
-                  <Divider />
-                </>
-              )}
+              <Section label={t.sectionCountry}>
+                <div className="type-chips-row">
+                  <button
+                    onClick={() => setCountry(null)}
+                    className={`chip${country === null ? " active" : ""}`}
+                    style={chipStyle(country === null)}
+                  >
+                    {t.countryAll}
+                  </button>
+                  {countries.map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCountry(country === c ? null : c)}
+                      className={`chip${country === c ? " active" : ""}`}
+                      style={chipStyle(country === c)}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </Section>
+
+              <Divider />
 
               {/* Flavor */}
               <Section label={t.sectionFlavor}>

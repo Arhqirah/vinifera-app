@@ -96,7 +96,7 @@ def list_countries():
     conn   = get_db()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT DISTINCT country FROM wines WHERE in_stock = TRUE AND country IS NOT NULL AND country != '' ORDER BY country"
+        "SELECT DISTINCT country FROM wines WHERE country IS NOT NULL AND country != '' ORDER BY country"
     )
     rows = cursor.fetchall()
     cursor.close()
