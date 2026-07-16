@@ -62,6 +62,32 @@ FLAVOR_TO_COLUMN = {
 }
 
 
+COUNTRY_ALIASES = {
+    "france": "Frankrig",
+    "italy": "Italien",
+    "spain": "Spanien",
+    "germany": "Tyskland",
+    "austria": "Østrig",
+    "greece": "Grækenland",
+    "australia": "Australien",
+    "south africa": "Sydafrika",
+    "new zealand": "New Zealand",
+    "united states": "USA",
+    "us": "USA",
+}
+
+def normalize_country(raw: str) -> str:
+    if not raw:
+        return ""
+    name = raw.split("/")[0].strip()
+    return COUNTRY_ALIASES.get(name.lower(), name)
+
+
+def raw_countries_for(cursor, normalized: str) -> list:
+    cursor.execute("SELECT DISTINCT country FROM wines WHERE country IS NOT NULL AND country != ''")
+    return [r[0] for r in cursor.fetchall() if normalize_country(r[0]) == normalized]
+
+
 def get_db():
     return mysql.connector.connect(**DB_CONFIG)
 
@@ -95,13 +121,17 @@ def list_wines():
 def list_countries():
     conn   = get_db()
     cursor = conn.cursor()
-    cursor.execute(
-        "SELECT DISTINCT country FROM wines WHERE country IS NOT NULL AND country != '' ORDER BY country"
-    )
+    cursor.execute("SELECT DISTINCT country FROM wines WHERE country IS NOT NULL AND country != ''")
     rows = cursor.fetchall()
     cursor.close()
     conn.close()
-    return jsonify({"countries": [r[0] for r in rows]})
+    seen, result = set(), []
+    for (raw,) in rows:
+        name = normalize_country(raw)
+        if name and name not in seen:
+            seen.add(name)
+            result.append(name)
+    return jsonify({"countries": sorted(result)})
 
 
 def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_price: float | None, exclude_ids: list[int] | None = None, country: str | None = None):
@@ -136,8 +166,10 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
         query += " AND w.price_dkk <= %s"
         params.append(max_price)
     if country:
-        query += " AND w.country = %s"
-        params.append(country)
+        raw = raw_countries_for(cursor, country)
+        if raw:
+            query += f" AND w.country IN ({', '.join(['%s'] * len(raw))})"
+            params.extend(raw)
     if exclude_ids:
         placeholders = ", ".join(["%s"] * len(exclude_ids))
         query += f" AND w.id NOT IN ({placeholders})"
@@ -238,14 +270,16 @@ def search_wines():
     if max_price:
         query += " AND price_dkk <= %s"
         params.append(max_price)
-    if country:
-        query += " AND country = %s"
-        params.append(country)
-
-    query += " ORDER BY title LIMIT 12"
-
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
+
+    if country:
+        raw = raw_countries_for(cursor, country)
+        if raw:
+            query += f" AND country IN ({', '.join(['%s'] * len(raw))})"
+            params.extend(raw)
+
+    query += " ORDER BY title LIMIT 12"
     cursor.execute(query, params)
     results = cursor.fetchall()
     cursor.close()
