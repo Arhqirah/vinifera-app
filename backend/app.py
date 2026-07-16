@@ -23,6 +23,7 @@ Flow:
 """
 
 import os
+import re
 import json
 import anthropic
 from flask import Flask, request, jsonify
@@ -62,25 +63,69 @@ FLAVOR_TO_COLUMN = {
 }
 
 
-COUNTRY_ALIASES = {
+COUNTRY_CANON = {
+    "frankrig": "Frankrig",
     "france": "Frankrig",
+    "frankrimousg": "Frankrig",
+    "frankring": "Frankrig",
+    "italien": "Italien",
     "italy": "Italien",
+    "i talien": "Italien",
+    "spanien": "Spanien",
     "spain": "Spanien",
+    "spanie": "Spanien",
+    "portugal": "Portugal",
+    "tyskland": "Tyskland",
     "germany": "Tyskland",
+    "østrig": "Østrig",
     "austria": "Østrig",
+    "grækenland": "Grækenland",
     "greece": "Grækenland",
+    "australien": "Australien",
     "australia": "Australien",
+    "sydafrika": "Sydafrika",
     "south africa": "Sydafrika",
     "new zealand": "New Zealand",
+    "usa": "USA",
     "united states": "USA",
-    "us": "USA",
+    "argentina": "Argentina",
+    "chile": "Chile",
+    "canada": "Canada",
+    "danmark": "Danmark",
+    "norge": "Norge",
+    "sverige": "Sverige",
+    "georgien": "Georgien",
+    "georgia": "Georgien",
+    "slovenien": "Slovenien",
+    "ungarn": "Ungarn",
+    "hungary": "Ungarn",
+    "den dominikanske republik": "Den Dominikanske Republik",
+    "mexico": "Mexico",
+    "peru": "Peru",
+    "storb ritannien": "Storbritannien",
+    "england": "Storbritannien",
+    "uk": "Storbritannien",
 }
+
 
 def normalize_country(raw: str) -> str:
     if not raw:
         return ""
-    name = raw.split("/")[0].strip()
-    return COUNTRY_ALIASES.get(name.lower(), name)
+    # Remove parenthetical region info: "Frankrig (Languedoc)" → "Frankrig"
+    cleaned = re.sub(r'\s*\([^)]*\)', '', raw).strip()
+    # Direct full-string match (handles "I talien", "Den Dominikanske Republik")
+    direct = COUNTRY_CANON.get(cleaned.lower())
+    if direct:
+        return direct
+    # Try each comma/slash/semicolon-separated part
+    # "Bordeaux, Frankrig" → ["Bordeaux", "Frankrig"] → "Frankrig"
+    # "Saint-Emillion, Bordeaux, Frankrig" → last part wins
+    parts = [p.strip() for p in re.split(r'[,/;]', cleaned) if p.strip()]
+    for part in parts:
+        canonical = COUNTRY_CANON.get(part.lower())
+        if canonical:
+            return canonical
+    return parts[0] if parts else cleaned
 
 
 def raw_countries_for(cursor, normalized: str) -> list:
