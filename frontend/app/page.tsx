@@ -851,7 +851,7 @@ export default function VineFinderPage() {
       {/* Footer */}
       <footer style={{ backgroundColor: "var(--nav-bg)", padding: "28px 24px", textAlign: "center" }}>
         <p style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>
-          VineFinder · {t.footerSub}
+          VinFinder · {t.footerSub}
         </p>
         <a href="https://viniferavin.dk" target="_blank" rel="noreferrer" style={{ color: "var(--nav-text)", fontSize: 12, textDecoration: "none", opacity: 0.5 }}>
           vinfinder
