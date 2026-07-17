@@ -207,59 +207,68 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
 
-    query = """
-        SELECT DISTINCT w.*
-        FROM wines w
-        LEFT JOIN wine_tags wt ON w.id = wt.wine_id
-        LEFT JOIN tags t ON wt.tag_id = t.id
-        WHERE w.in_stock = TRUE
-          AND w.wine_type IS NOT NULL
-          AND w.wine_type NOT IN ('Øl & vand')
-    """
-    params = []
+    def _run(skip_occasion_tag=False, skip_wine_type=False, skip_country=False):
+        query = """
+            SELECT DISTINCT w.*
+            FROM wines w
+            LEFT JOIN wine_tags wt ON w.id = wt.wine_id
+            LEFT JOIN tags t ON wt.tag_id = t.id
+            WHERE w.in_stock = TRUE
+              AND w.wine_type IS NOT NULL
+              AND w.wine_type NOT IN ('Øl & vand')
+        """
+        params = []
 
-    is_food_pairing = occasion and occasion.lower() in FOOD_PAIRING_MAP
-    if is_food_pairing:
-        # Food-pairing occasion: skip tag filter, pre-filter by suitable wine types
-        # (only when the user hasn't already chosen a specific type)
-        if not wine_type:
-            pairing_types = FOOD_PAIRING_MAP[occasion.lower()]
-            placeholders = ", ".join(["%s"] * len(pairing_types))
-            query += f" AND w.wine_type IN ({placeholders})"
-            params.extend(pairing_types)
-    elif occasion:
-        # Event/activity occasion: match against the tags table
-        query += " AND (t.name = %s OR t.name IS NULL)"
-        params.append(occasion)
-    if wine_type:
-        if wine_type == "Alkoholfri":
-            query += " AND (w.wine_type LIKE '%Alkoholfri%' OR w.wine_type = 'Alkoholreduceret')"
-        elif wine_type == "Mousserende":
-            query += " AND w.wine_type IN ('Mousserende', 'Champagne', 'Doux')"
-        elif wine_type == "Spiritus":
-            query += " AND w.wine_type IN ('Cognac', 'Calvados', 'Snaps', 'Rom', 'Vodka', 'Armagnac', 'Grappa', 'Tequila', 'Likør', 'Pastis / Ouzo', 'Bitter', 'Anden spiritus', 'Aperitif', 'Frugtvin')"
-        else:
-            query += " AND w.wine_type = %s"
-            params.append(wine_type)
-    if max_price:
-        query += " AND w.price_dkk <= %s"
-        params.append(max_price)
-    if country:
-        raw = raw_countries_for(conn, country)
-        if raw:
-            query += f" AND w.country IN ({', '.join(['%s'] * len(raw))})"
-            params.extend(raw)
-    if exclude_ids:
-        placeholders = ", ".join(["%s"] * len(exclude_ids))
-        query += f" AND w.id NOT IN ({placeholders})"
-        params.extend(exclude_ids)
+        is_food_pairing = occasion and occasion.lower() in FOOD_PAIRING_MAP
+        if not skip_occasion_tag:
+            if is_food_pairing and (not wine_type or skip_wine_type):
+                pairing_types = FOOD_PAIRING_MAP[occasion.lower()]
+                placeholders = ", ".join(["%s"] * len(pairing_types))
+                query += f" AND w.wine_type IN ({placeholders})"
+                params.extend(pairing_types)
+            elif occasion and not is_food_pairing:
+                query += " AND (t.name = %s OR t.name IS NULL)"
+                params.append(occasion)
 
-    # Order by how well it matches the requested flavor dimension
-    column, direction = FLAVOR_TO_COLUMN.get(flavor.lower(), ("fruitiness", "desc"))
-    query += f" ORDER BY w.{column} {direction.upper()} LIMIT 8"
+        if not skip_wine_type and wine_type:
+            if wine_type == "Alkoholfri":
+                query += " AND (w.wine_type LIKE '%Alkoholfri%' OR w.wine_type = 'Alkoholreduceret')"
+            elif wine_type == "Mousserende":
+                query += " AND w.wine_type IN ('Mousserende', 'Champagne', 'Doux')"
+            elif wine_type == "Spiritus":
+                query += " AND w.wine_type IN ('Cognac', 'Calvados', 'Snaps', 'Rom', 'Vodka', 'Armagnac', 'Grappa', 'Tequila', 'Likør', 'Pastis / Ouzo', 'Bitter', 'Anden spiritus', 'Aperitif', 'Frugtvin')"
+            else:
+                query += " AND w.wine_type = %s"
+                params.append(wine_type)
 
-    cursor.execute(query, params)
-    results = cursor.fetchall()
+        if max_price:
+            query += " AND w.price_dkk <= %s"
+            params.append(max_price)
+
+        if not skip_country and country:
+            raw = raw_countries_for(conn, country)
+            if raw:
+                query += f" AND w.country IN ({', '.join(['%s'] * len(raw))})"
+                params.extend(raw)
+
+        if exclude_ids:
+            placeholders = ", ".join(["%s"] * len(exclude_ids))
+            query += f" AND w.id NOT IN ({placeholders})"
+            params.extend(exclude_ids)
+
+        column, direction = FLAVOR_TO_COLUMN.get((flavor or "frugtig").lower(), ("fruitiness", "desc"))
+        query += f" ORDER BY w.{column} {direction.upper()} LIMIT 8"
+        cursor.execute(query, params)
+        return cursor.fetchall()
+
+    # Progressive fallback: relax filters until we get results
+    results = (
+        _run() or
+        _run(skip_occasion_tag=True) or
+        _run(skip_occasion_tag=True, skip_country=True) or
+        _run(skip_occasion_tag=True, skip_wine_type=True, skip_country=True)
+    )
+
     cursor.close()
     conn.close()
     return results
