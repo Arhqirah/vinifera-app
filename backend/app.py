@@ -591,5 +591,115 @@ def admin_update_sektion(wine_id):
     return jsonify({"ok": True})
 
 
+@app.route("/api/admin/migrate-sektion", methods=["POST"])
+def migrate_sektion():
+    secret = request.get_json(force=True).get("secret", "")
+    if secret != os.environ.get("MIGRATE_SECRET", "vinifera-migrate-2026"):
+        return jsonify({"error": "Unauthorized"}), 401
+
+    statements = [
+        "ALTER TABLE wines ADD COLUMN IF NOT EXISTS sektion VARCHAR(100)",
+        "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 2' WHERE title LIKE '%Mandois%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 2' WHERE title LIKE '%Janisson%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 3' WHERE title LIKE '%Veuve Clicquot%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 3' WHERE title LIKE '%Billecart%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 4' WHERE title LIKE '%Luc Merat%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Meyer-Fonné%' OR title LIKE '%Meyer Fonne%' OR title LIKE '%Meyer Fonné%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Bassermann%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Weisslacker%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Haffenberg%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Prager%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Sturm Riesling%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Rauen Riesling%' OR title LIKE '%Slate Mosel%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Scheidecker%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Schloss Johannisberg%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Max Ferd. Richter%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 2' WHERE title LIKE '%Stagård%' OR title LIKE '%Stagard%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Drouhin%' AND (title LIKE '%Macon%' OR title LIKE '%Mâcon%' OR title LIKE '%Chablis%')",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Pouilly-Fuissé%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Pouilly-Vinzelles%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Puligny-Montrachet%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Meursault%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Chat Sauvage%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Zorzettig%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Verus%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Renesio%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Sangiovanni%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Planeta Chardonnay%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 3' WHERE title LIKE '%Planeta Terebinto%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Delas%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Château Barateau%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Château Malineau%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%2nd Pez%' OR title LIKE '%de Pez%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Bandol%' AND producer LIKE '%Tempier%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Les Carretas%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Beaujolais%' AND producer LIKE '%Drouhin%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Fleurie%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Crozes-Hermitage%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Vacqueyras%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Gigondas%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 4' WHERE title LIKE '%Châteauneuf%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Prunotto%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Parron Anguin%' OR title LIKE '%Paros de Anguix%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Viña Alberdi%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Pingus%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Ninfa%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 5' WHERE title LIKE '%Staida%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Villa Antinori%' AND wine_type = 'Rødvin'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Dolcetto%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Neprica%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Florao%' OR title LIKE '%Florão%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Earthworks%'",
+        "UPDATE wines SET sektion = 'Reol 1 - Hylde 6' WHERE title LIKE '%Tilia%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Solaia%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Guado al Tasso%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Tignanello%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Badia a Passignano%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Marchese Antinori%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 1' WHERE title LIKE '%Pian della Vigna%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE producer LIKE '%Vajra%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE title LIKE '%Albe Barolo%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE title LIKE '%Bourgogne Aligote%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE title LIKE '%Auxey-Duresses%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE title LIKE '%Fixin%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 2' WHERE title LIKE '%Santenay%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 3' WHERE title LIKE '%Dreissigacker%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 3' WHERE title LIKE '%Spätburgunder%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 4' WHERE title LIKE '%Kistler%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 4' WHERE title LIKE '%Dobbes%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 4' WHERE title LIKE '%Cloudline%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%DAOU%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%Postals%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%Momo%' AND wine_type = 'Hvidvin'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%Ara Select%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%Château Simon%'",
+        "UPDATE wines SET sektion = 'Reol 2 - Hylde 5' WHERE title LIKE '%Valdeorras%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE wine_type IN ('Whisky','Cognac','Calvados','Rom','Gin','Vodka','Armagnac','Grappa','Tequila','Likør','Pastis / Ouzo','Bitter','Anden spiritus','Aperitif','Snaps')",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE wine_type IN ('Portvin','Hedvin','Dessertvin')",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Graham%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Niepoort%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Lustau%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Kilchoman%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Raasay%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Glenfarclas%'",
+        "UPDATE wines SET sektion = 'Reol 3 - Venstre' WHERE title LIKE '%Walcher%'",
+        "UPDATE wines SET sektion = 'Hvid Reol' WHERE wine_type = 'Rosévin'",
+    ]
+
+    conn = get_db()
+    cursor = conn.cursor()
+    results = []
+    for sql in statements:
+        try:
+            cursor.execute(sql)
+            results.append({"sql": sql[:60], "rows": cursor.rowcount})
+        except Exception as e:
+            results.append({"sql": sql[:60], "error": str(e)})
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"ok": True, "statements": len(statements), "results": results})
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=int(os.environ.get("PORT", 5000)))
