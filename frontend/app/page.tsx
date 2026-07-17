@@ -912,8 +912,78 @@ function Divider() {
 
 type Translations = typeof T[Lang];
 
+function StoreMap({ sektion }: { sektion: string }) {
+  const ACTIVE = "#2d6a4f";
+  const INACTIVE = "var(--chip-bg, #f0ede7)";
+  const BORDER = "#c8bfae";
+  const LBL = "#999";
+
+  const fill   = (id: string) => sektion === id ? ACTIVE : INACTIVE;
+  const txtFill = (id: string) => sektion === id ? "#fff" : LBL;
+
+  return (
+    <svg viewBox="0 0 295 185" style={{ width: "100%", maxWidth: 295, display: "block" }}>
+      {/* Reol 1 — right wall, 6 hylder */}
+      <text x="268" y="9" textAnchor="middle" fontSize="8" fill={LBL} fontWeight="700">Reol 1</text>
+      {[1,2,3,4,5,6].map(h => {
+        const id = `Reol 1 - Hylde ${h}`;
+        const y = 12 + (h-1)*27;
+        return (
+          <g key={id}>
+            <rect x={248} y={y} width={40} height={26} rx={3} fill={fill(id)} stroke={BORDER} strokeWidth={0.8} />
+            <text x={268} y={y+15} textAnchor="middle" fontSize="8" fill={txtFill(id)} fontWeight={sektion===id?"700":"400"}>H{h}</text>
+          </g>
+        );
+      })}
+
+      {/* Reol 2 — 5 hylder */}
+      <text x="215" y="9" textAnchor="middle" fontSize="8" fill={LBL} fontWeight="700">Reol 2</text>
+      {[1,2,3,4,5].map(h => {
+        const id = `Reol 2 - Hylde ${h}`;
+        const y = 12 + (h-1)*27;
+        return (
+          <g key={id}>
+            <rect x={188} y={y} width={54} height={26} rx={3} fill={fill(id)} stroke={BORDER} strokeWidth={0.8} />
+            <text x={215} y={y+15} textAnchor="middle" fontSize="8" fill={txtFill(id)} fontWeight={sektion===id?"700":"400"}>H{h}</text>
+          </g>
+        );
+      })}
+
+      {/* Reol 3 */}
+      <text x="71" y="9" textAnchor="middle" fontSize="8" fill={LBL} fontWeight="700">Reol 3</text>
+
+      {/* Reol 3 Venstre — spiritus/port */}
+      <rect x={14} y={12} width={52} height={81} rx={3} fill={fill("Reol 3 - Venstre")} stroke={BORDER} strokeWidth={0.8} />
+      <text x={40} y={47} textAnchor="middle" fontSize="8" fill={txtFill("Reol 3 - Venstre")} fontWeight="600">Venstre</text>
+      <text x={40} y={59} textAnchor="middle" fontSize="7" fill={txtFill("Reol 3 - Venstre")} opacity={0.75}>Spiritus</text>
+      <text x={40} y={69} textAnchor="middle" fontSize="7" fill={txtFill("Reol 3 - Venstre")} opacity={0.75}>& Port</text>
+
+      {/* Reol 3 Højre — hylde 2, 3, 4 */}
+      {([2,3,4] as const).map((h, i) => {
+        const id = `Reol 3 - Hojre - Hylde ${h}`;
+        const y = 12 + i*27;
+        return (
+          <g key={id}>
+            <rect x={70} y={y} width={58} height={26} rx={3} fill={fill(id)} stroke={BORDER} strokeWidth={0.8} />
+            <text x={99} y={y+15} textAnchor="middle" fontSize="8" fill={txtFill(id)} fontWeight={sektion===id?"700":"400"}>Højre H{h}</text>
+          </g>
+        );
+      })}
+
+      {/* Hvid Reol — freestanding */}
+      <rect x={14} y={110} width={148} height={36} rx={3} fill={fill("Hvid Reol")} stroke={BORDER} strokeWidth={0.8} />
+      <text x={88} y={130} textAnchor="middle" fontSize="9" fill={txtFill("Hvid Reol")} fontWeight="600">Hvid Reol</text>
+      <text x={88} y={141} textAnchor="middle" fontSize="7" fill={txtFill("Hvid Reol")} opacity={0.75}>Rosé & Cider</text>
+
+      {/* Entry */}
+      <text x="215" y="178" textAnchor="middle" fontSize="7.5" fill="#bbb">↓ Indgang</text>
+    </svg>
+  );
+}
+
 function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translations }) {
   const [expanded, setExpanded] = useState(false);
+  const [showMap,  setShowMap]  = useState(false);
   const CUTOFF = 240;
   return (
     <div className="wine-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 20, border: "1px solid var(--border)", overflow: "hidden", boxShadow: "0 2px 12px var(--card-shadow)" }}>
@@ -938,8 +1008,19 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
               {[wine.producer, wine.country, wine.wine_type].filter(Boolean).join(" · ")}
             </p>
             {wine.sektion && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#fff", backgroundColor: "#2d6a4f", borderRadius: 20, padding: "4px 12px", marginBottom: 10 }}>
-                📍 {wine.sektion}
+              <div style={{ marginBottom: 10 }}>
+                <button
+                  onClick={() => setShowMap(m => !m)}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#fff", backgroundColor: "#2d6a4f", borderRadius: 20, padding: "4px 12px", border: "none", cursor: "pointer" }}
+                >
+                  📍 {wine.sektion}
+                  <span style={{ fontSize: 10, opacity: 0.75 }}>{showMap ? "▲" : "▼"}</span>
+                </button>
+                {showMap && (
+                  <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: "1px solid #c8e6d4", backgroundColor: "#f2f8f5" }}>
+                    <StoreMap sektion={wine.sektion} />
+                  </div>
+                )}
               </div>
             )}
           </div>
