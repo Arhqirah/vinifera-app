@@ -177,6 +177,25 @@ const T = {
   },
 } as const;
 
+type QuickPreset = {
+  emoji: string;
+  da: string;
+  en: string;
+  occasionIdx: number;
+  wineType: string | null;
+  flavorIdx: number;
+};
+
+const QUICK_PRESETS: QuickPreset[] = [
+  { emoji: "🔥", da: "Til grillen",    en: "BBQ night",        occasionIdx: 4,  wineType: "Rødvin",      flavorIdx: 1 },
+  { emoji: "🫧", da: "Velkomstdrink",  en: "Welcome drink",    occasionIdx: 5,  wineType: "Mousserende", flavorIdx: 6 },
+  { emoji: "💝", da: "Romantisk aften",en: "Romantic evening", occasionIdx: 3,  wineType: null,          flavorIdx: 3 },
+  { emoji: "🍣", da: "Til sushi",      en: "For sushi",        occasionIdx: 13, wineType: "Hvidvin",     flavorIdx: 6 },
+  { emoji: "🥩", da: "Til kødet",      en: "For meat",         occasionIdx: 14, wineType: "Rødvin",      flavorIdx: 3 },
+  { emoji: "🌸", da: "Sommervin",      en: "Summer wine",      occasionIdx: 0,  wineType: "Hvidvin",     flavorIdx: 6 },
+  { emoji: "🎁", da: "Gaveidé",        en: "Gift idea",        occasionIdx: 2,  wineType: null,          flavorIdx: 0 },
+];
+
 const OCCASION_ICONS = [
   UtensilsCrossed, PartyPopper, Gift, Heart, Flame,
   Coffee, Briefcase, Users, Cake, Snowflake, Star, Tv2, TreePine,
@@ -262,7 +281,17 @@ export default function VineFinderPage() {
 
   const t = T[lang];
 
-  async function fetchWines(excludeIds: number[] = [], append = false) {
+  function applyPreset(preset: QuickPreset) {
+    setOccasionIdx(preset.occasionIdx);
+    setWineType(preset.wineType);
+    setFlavorIdx(preset.flavorIdx);
+    setCountry(null);
+    setMaxPrice("");
+    setNameSearch("");
+    fetchWines([], false, preset);
+  }
+
+  async function fetchWines(excludeIds: number[] = [], append = false, preset?: QuickPreset) {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -287,15 +316,18 @@ export default function VineFinderPage() {
         newPicks = (data.picks || []) as WineItem[];
         setHasMore(false);
       } else {
-        const occasionKey = T.da.occasions[occasionIdx].toLowerCase();
-        const flavorKey   = t.flavors[flavorIdx].key;
+        const effOccasionIdx = preset?.occasionIdx ?? occasionIdx;
+        const effFlavorIdx   = preset?.flavorIdx   ?? flavorIdx;
+        const effWineType    = preset ? preset.wineType : wineType;
+        const occasionKey = T.da.occasions[effOccasionIdx].toLowerCase();
+        const flavorKey   = t.flavors[effFlavorIdx].key;
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/recommend`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             occasion:    occasionKey,
             flavor:      flavorKey,
-            wine_type:   wineType ?? undefined,
+            wine_type:   effWineType ?? undefined,
             country:     country ?? undefined,
             max_price:   maxPrice ? Number(maxPrice) : undefined,
             exclude_ids: excludeIds,
@@ -416,9 +448,29 @@ export default function VineFinderPage() {
           <h1 className="hero-title" style={{ color: "var(--nav-text)", fontSize: 46, fontWeight: 600, marginBottom: 16, lineHeight: 1.15, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
             {t.heroTitle}
           </h1>
-          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.8, maxWidth: 440, margin: "0 auto", fontWeight: 400, letterSpacing: 0.1 }}>
+          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.8, maxWidth: 440, margin: "0 auto 28px", fontWeight: 400, letterSpacing: 0.1 }}>
             {t.heroSub}
           </p>
+          {/* Quick presets */}
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}>
+            {QUICK_PRESETS.map((p) => (
+              <button
+                key={p.da}
+                onClick={() => applyPreset(p)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 7,
+                  padding: "8px 16px", borderRadius: 100,
+                  backgroundColor: "rgba(255,255,255,0.10)",
+                  border: "1.5px solid rgba(232,213,183,0.25)",
+                  color: "var(--nav-text)", fontSize: 14, fontWeight: 500,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ fontSize: 16 }}>{p.emoji}</span>
+                {lang === "da" ? p.da : p.en}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
