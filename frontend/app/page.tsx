@@ -886,7 +886,7 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
               {[wine.producer, wine.country, wine.wine_type].filter(Boolean).join(" · ")}
             </p>
             {wine.sektion && (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "var(--text)", backgroundColor: "var(--sidebar-bg)", border: "1px solid var(--border)", borderRadius: 20, padding: "3px 10px", marginBottom: 8 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "#fff", backgroundColor: "#2d6a4f", borderRadius: 20, padding: "4px 12px", marginBottom: 10 }}>
                 📍 {wine.sektion}
               </div>
             )}
