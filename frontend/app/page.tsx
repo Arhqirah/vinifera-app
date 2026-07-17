@@ -484,8 +484,8 @@ export default function VineFinderPage() {
               className="nav-icon-btn"
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
-                backgroundColor: "rgba(232,213,183,0.1)",
-                border: "1px solid rgba(232,213,183,0.2)",
+                backgroundColor: "rgba(245,239,230,0.1)",
+                border: "1px solid rgba(245,239,230,0.2)",
                 borderRadius: 6, padding: "5px 8px",
                 color: "var(--nav-text)", cursor: "pointer",
               }}
@@ -497,8 +497,8 @@ export default function VineFinderPage() {
               className="nav-icon-btn"
               style={{
                 display: "flex", alignItems: "center", gap: 6,
-                backgroundColor: "rgba(232,213,183,0.1)",
-                border: "1px solid rgba(232,213,183,0.2)",
+                backgroundColor: "rgba(245,239,230,0.1)",
+                border: "1px solid rgba(245,239,230,0.2)",
                 borderRadius: 6, padding: "5px 10px",
                 color: "var(--nav-text)", fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: 0.5,
               }}
@@ -518,16 +518,16 @@ export default function VineFinderPage() {
         minHeight: 560, display: "flex", alignItems: "center",
       }}>
         {/* Dark overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(10,4,2,0.55) 0%, rgba(10,4,2,0.80) 60%, rgba(10,4,2,0.96) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(40,5,14,0.60) 0%, rgba(40,5,14,0.82) 60%, rgba(25,3,9,0.97) 100%)" }} />
         {/* Content */}
         <div style={{ position: "relative", zIndex: 1, maxWidth: 860, margin: "0 auto", width: "100%", padding: "88px 24px 104px", textAlign: "center" }}>
-          <p style={{ color: "rgba(232,213,183,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", marginBottom: 24, marginTop: 0 }}>
+          <p style={{ color: "rgba(245,239,230,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", marginBottom: 24, marginTop: 0 }}>
             Vinifera · Birkerød
           </p>
-          <h1 className="hero-title" style={{ color: "#EAD9BC", fontSize: "clamp(44px, 6.5vw, 72px)", fontWeight: 500, marginBottom: 20, lineHeight: 1.08, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
+          <h1 className="hero-title" style={{ color: "#F5EFE6", fontSize: "clamp(44px, 6.5vw, 72px)", fontWeight: 500, marginBottom: 20, lineHeight: 1.08, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
             {t.heroTitle}
           </h1>
-          <p className="hero-sub" style={{ color: "rgba(232,213,183,0.62)", fontSize: 16, lineHeight: 1.85, maxWidth: 460, margin: "0 auto 40px", fontWeight: 400 }}>
+          <p className="hero-sub" style={{ color: "rgba(245,239,230,0.65)", fontSize: 16, lineHeight: 1.85, maxWidth: 460, margin: "0 auto 40px", fontWeight: 400 }}>
             {t.heroSub}
           </p>
           {/* Quick presets */}
@@ -540,8 +540,8 @@ export default function VineFinderPage() {
                   display: "inline-flex", alignItems: "center", gap: 7,
                   padding: "9px 18px", borderRadius: 100,
                   backgroundColor: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(232,213,183,0.22)",
-                  color: "rgba(232,213,183,0.88)", fontSize: 14, fontWeight: 500,
+                  border: "1px solid rgba(245,239,230,0.25)",
+                  color: "rgba(245,239,230,0.90)", fontSize: 14, fontWeight: 500,
                   cursor: "pointer", whiteSpace: "nowrap",
                   backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                 }}
@@ -556,7 +556,7 @@ export default function VineFinderPage() {
 
       {/* Form card */}
       <div style={{ maxWidth: 860, margin: "-44px auto 0", padding: "0 20px 60px" }}>
-        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 28, boxShadow: "0 -2px 16px rgba(0,0,0,0.18), 0 8px 40px var(--card-shadow)", padding: "36px 32px", marginBottom: 32 }}>
+        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 28, boxShadow: "0 -2px 16px rgba(0,0,0,0.18), 0 8px 40px var(--card-shadow)", padding: "60px 32px 36px", marginBottom: 32 }}>
 
           {searched && !formOpen ? (
             /* Collapsed state */
@@ -860,32 +860,32 @@ export default function VineFinderPage() {
 
       <style>{`
         [data-theme="light"] {
-          --page-bg:           #F7F2EB;
-          --nav-bg:            #241510;
-          --nav-text:          #EAD9BC;
-          --nav-mid:           #8B6B4A;
+          --page-bg:           #EAE5DC;
+          --nav-bg:            #6B1428;
+          --nav-text:          #F5EFE6;
+          --nav-mid:           rgba(245,239,230,0.55);
           --hero-sub:          #A8885F;
-          --card-bg:           #FEFCF8;
-          --card-shadow:       rgba(44,24,16,0.08);
-          --sidebar-bg:        #F2EAE0;
-          --input-bg:          #F7F2EB;
-          --primary-bg:        #241510;
-          --primary-text:      #EAD9BC;
-          --primary-hover-bg:  #3A1F10;
-          --text:              #241510;
-          --text-mid:          #8B6B4A;
-          --text-sub:          #4A3728;
-          --border:            #E2D5C3;
-          --chip-bg:           #F7F2EB;
-          --chip-text:         #3D2B1F;
-          --chip-hover-bg:     #EEE5D8;
-          --chip-hover-border: #241510;
-          --buy-btn-bg:        #F2EAE0;
-          --buy-hover-bg:      #E8DDD0;
-          --buy-hover-border:  #241510;
-          --more-hover-bg:     #F2EAE0;
-          --reset-hover-text:  #241510;
-          --reset-hover-bg:    #F2EAE0;
+          --card-bg:           #FDFAF6;
+          --card-shadow:       rgba(107,20,40,0.07);
+          --sidebar-bg:        #F0EBE2;
+          --input-bg:          #EAE5DC;
+          --primary-bg:        #6B1428;
+          --primary-text:      #F5EFE6;
+          --primary-hover-bg:  #85192F;
+          --text:              #1A1A1A;
+          --text-mid:          #6B5B4E;
+          --text-sub:          #3D3028;
+          --border:            #DDD8CE;
+          --chip-bg:           #EAE5DC;
+          --chip-text:         #2A2015;
+          --chip-hover-bg:     #E0DBD1;
+          --chip-hover-border: #6B1428;
+          --buy-btn-bg:        #F0EBE2;
+          --buy-hover-bg:      #E5DFD5;
+          --buy-hover-border:  #6B1428;
+          --more-hover-bg:     #E0DBD1;
+          --reset-hover-text:  #6B1428;
+          --reset-hover-bg:    #F0EBE2;
         }
         [data-theme="dark"] {
           --page-bg:           #110905;
@@ -935,7 +935,7 @@ export default function VineFinderPage() {
         .reset-btn { transition: color 0.2s, background-color 0.2s; border-radius: 100px; padding: 5px 10px; }
         .reset-btn:hover { color: var(--reset-hover-text)!important; background-color: var(--reset-hover-bg); }
         .nav-icon-btn { transition: background-color 0.2s, border-color 0.2s; }
-        .nav-icon-btn:hover { background-color: rgba(234,217,188,0.15)!important; border-color: rgba(234,217,188,0.35)!important; }
+        .nav-icon-btn:hover { background-color: rgba(245,239,230,0.15)!important; border-color: rgba(245,239,230,0.35)!important; }
 
         .type-chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
         @media (max-width: 480px) {
@@ -947,7 +947,7 @@ export default function VineFinderPage() {
           .nav-label { display: none !important; }
           .hero-title { font-size: 30px !important; letter-spacing: 0px !important; }
           .hero-sub { font-size: 14px !important; }
-          .form-card { padding: 20px 16px !important; }
+          .form-card { padding: 48px 16px 20px !important; }
           .find-btn { width: 100% !important; justify-content: center !important; }
           .wine-card-sidebar { width: 90px !important; }
           .wine-card-img { width: 55px !important; height: 95px !important; }
