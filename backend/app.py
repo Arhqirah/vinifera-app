@@ -591,12 +591,7 @@ def admin_update_sektion(wine_id):
     return jsonify({"ok": True})
 
 
-@app.route("/api/admin/migrate-sektion", methods=["POST"])
-def migrate_sektion():
-    secret = request.get_json(force=True).get("secret", "")
-    if secret != os.environ.get("MIGRATE_SECRET", "vinifera-migrate-2026"):
-        return jsonify({"error": "Unauthorized"}), 401
-
+def migrate_sektion_disabled():
     statements = [
         "ALTER TABLE wines ADD COLUMN IF NOT EXISTS sektion VARCHAR(100)",
         "UPDATE wines SET sektion = 'Reol 3 - Hojre - Hylde 2' WHERE title LIKE '%Mandois%'",
