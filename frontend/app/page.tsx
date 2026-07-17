@@ -468,12 +468,12 @@ export default function VineFinderPage() {
       <header style={{
         backgroundColor: "var(--nav-bg)", padding: "0 24px",
         position: "sticky", top: 0, zIndex: 50,
-        boxShadow: "0 1px 12px rgba(0,0,0,0.25)",
+        borderBottom: "1px solid rgba(232,213,183,0.08)",
       }}>
         <div style={{ maxWidth: 860, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 60 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <Wine size={20} color="var(--nav-text)" />
-            <span style={{ color: "var(--nav-text)", fontSize: 17, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>VinFinder</span>
+            <span style={{ color: "var(--nav-text)", fontSize: 13, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase" }}>VinFinder</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <span className="nav-label" style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase" }}>
@@ -510,13 +510,24 @@ export default function VineFinderPage() {
         </div>
       </header>
 
-      {/* Hero */}
-      <div style={{ backgroundColor: "var(--nav-bg)", padding: "56px 24px 68px" }}>
-        <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
-          <h1 className="hero-title" style={{ color: "var(--nav-text)", fontSize: 46, fontWeight: 600, marginBottom: 16, lineHeight: 1.15, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
+      {/* Hero — dramatic image banner */}
+      <div style={{
+        position: "relative", overflow: "hidden",
+        backgroundImage: "url(/shelf-images/Refernce1.jpg)",
+        backgroundSize: "cover", backgroundPosition: "center 35%",
+        minHeight: 560, display: "flex", alignItems: "center",
+      }}>
+        {/* Dark overlay */}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(10,4,2,0.55) 0%, rgba(10,4,2,0.80) 60%, rgba(10,4,2,0.96) 100%)" }} />
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 860, margin: "0 auto", width: "100%", padding: "88px 24px 104px", textAlign: "center" }}>
+          <p style={{ color: "rgba(232,213,183,0.45)", fontSize: 11, fontWeight: 600, letterSpacing: 4, textTransform: "uppercase", marginBottom: 24, marginTop: 0 }}>
+            Vinifera · Birkerød
+          </p>
+          <h1 className="hero-title" style={{ color: "#EAD9BC", fontSize: "clamp(44px, 6.5vw, 72px)", fontWeight: 500, marginBottom: 20, lineHeight: 1.08, letterSpacing: 0.5, fontFamily: "var(--font-heading)" }}>
             {t.heroTitle}
           </h1>
-          <p className="hero-sub" style={{ color: "var(--hero-sub)", fontSize: 16, lineHeight: 1.8, maxWidth: 440, margin: "0 auto 28px", fontWeight: 400, letterSpacing: 0.1 }}>
+          <p className="hero-sub" style={{ color: "rgba(232,213,183,0.62)", fontSize: 16, lineHeight: 1.85, maxWidth: 460, margin: "0 auto 40px", fontWeight: 400 }}>
             {t.heroSub}
           </p>
           {/* Quick presets */}
@@ -527,11 +538,12 @@ export default function VineFinderPage() {
                 onClick={() => applyPreset(p)}
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 7,
-                  padding: "8px 16px", borderRadius: 100,
-                  backgroundColor: "rgba(255,255,255,0.10)",
-                  border: "1.5px solid rgba(232,213,183,0.25)",
-                  color: "var(--nav-text)", fontSize: 14, fontWeight: 500,
+                  padding: "9px 18px", borderRadius: 100,
+                  backgroundColor: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(232,213,183,0.22)",
+                  color: "rgba(232,213,183,0.88)", fontSize: 14, fontWeight: 500,
                   cursor: "pointer", whiteSpace: "nowrap",
+                  backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
                 }}
               >
                 <span style={{ fontSize: 16 }}>{p.emoji}</span>
@@ -543,8 +555,8 @@ export default function VineFinderPage() {
       </div>
 
       {/* Form card */}
-      <div style={{ maxWidth: 860, margin: "-28px auto 0", padding: "0 20px 60px" }}>
-        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.04), 0 8px 32px var(--card-shadow)", padding: "36px 32px", marginBottom: 32 }}>
+      <div style={{ maxWidth: 860, margin: "-44px auto 0", padding: "0 20px 60px" }}>
+        <div className="form-card" style={{ backgroundColor: "var(--card-bg)", borderRadius: 28, boxShadow: "0 -2px 16px rgba(0,0,0,0.18), 0 8px 40px var(--card-shadow)", padding: "36px 32px", marginBottom: 32 }}>
 
           {searched && !formOpen ? (
             /* Collapsed state */
