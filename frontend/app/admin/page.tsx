@@ -31,6 +31,7 @@ type Wine = {
   country: string | null;
   price_dkk: number | null;
   sektion: string | null;
+  is_new: boolean;
 };
 
 export default function AdminPage() {
@@ -58,16 +59,26 @@ export default function AdminPage() {
   useEffect(() => { fetchWines(); }, [fetchWines]);
 
   async function saveSektion(wine: Wine) {
-    const newVal = edited[wine.id] !== undefined ? edited[wine.id] : (wine.sektion ?? "");
+    const newSektion = edited[wine.id] !== undefined ? edited[wine.id] : (wine.sektion ?? "");
     setSaving((s) => ({ ...s, [wine.id]: true }));
     await fetch(`${API}/api/admin/wines/${wine.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sektion: newVal || null }),
+      body: JSON.stringify({ sektion: newSektion || null }),
     });
-    setWines((ws) => ws.map((w) => w.id === wine.id ? { ...w, sektion: newVal || null } : w));
+    setWines((ws) => ws.map((w) => w.id === wine.id ? { ...w, sektion: newSektion || null } : w));
     setEdited((e) => { const n = { ...e }; delete n[wine.id]; return n; });
     setSaving((s) => ({ ...s, [wine.id]: false }));
+  }
+
+  async function toggleIsNew(wine: Wine) {
+    const newVal = !wine.is_new;
+    await fetch(`${API}/api/admin/wines/${wine.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_new: newVal }),
+    });
+    setWines((ws) => ws.map((w) => w.id === wine.id ? { ...w, is_new: newVal } : w));
   }
 
   const uassigned = wines.filter((w) => !w.sektion).length;
@@ -131,8 +142,9 @@ export default function AdminPage() {
               <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "12%" }}>Type</th>
               <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "10%" }}>Land</th>
               <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "8%" }}>Pris</th>
-              <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "25%" }}>Sektion</th>
-              <th style={{ padding: "10px 8px", width: "10%" }}></th>
+              <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "22%" }}>Sektion</th>
+              <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "6%", textAlign: "center" }}>NY</th>
+              <th style={{ padding: "10px 8px", width: "8%" }}></th>
             </tr>
           </thead>
           <tbody>
@@ -160,6 +172,15 @@ export default function AdminPage() {
                       <option value="">— ikke tildelt —</option>
                       {SEKTIONER.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
+                  </td>
+                  <td style={{ padding: "10px 8px", textAlign: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={!!wine.is_new}
+                      onChange={() => toggleIsNew(wine)}
+                      title="Markér som ny i sortimentet"
+                      style={{ cursor: "pointer", width: 16, height: 16, accentColor: "#d97706" }}
+                    />
                   </td>
                   <td style={{ padding: "10px 8px" }}>
                     {isDirty && (

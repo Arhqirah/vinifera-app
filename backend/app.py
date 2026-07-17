@@ -161,6 +161,15 @@ def get_db():
     return mysql.connector.connect(**DB_CONFIG)
 
 
+# Auto-migrate: add is_new column if it doesn't exist yet
+try:
+    _c = get_db(); _cur = _c.cursor()
+    _cur.execute("ALTER TABLE wines ADD COLUMN IF NOT EXISTS is_new BOOLEAN DEFAULT FALSE")
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
+
 @app.route("/api/wines", methods=["GET"])
 def list_wines():
     """Raw filtered search, no AI — useful for testing the DB independently."""
@@ -564,7 +573,7 @@ def admin_list_wines():
     search = request.args.get("q", "").strip()
     sektion = request.args.get("sektion", "").strip()
 
-    query = "SELECT id, title, producer, wine_type, country, price_dkk, sektion FROM wines WHERE 1=1"
+    query = "SELECT id, title, producer, wine_type, country, price_dkk, sektion, COALESCE(is_new, 0) as is_new FROM wines WHERE 1=1"
     params = []
     if search:
         query += " AND (title LIKE %s OR producer LIKE %s)"
@@ -593,10 +602,16 @@ def admin_list_wines():
 @app.route("/api/admin/wines/<int:wine_id>", methods=["PATCH"])
 def admin_update_sektion(wine_id):
     data = request.get_json(force=True)
-    sektion = data.get("sektion", "").strip() or None
+    updates, vals = [], []
+    if "sektion" in data:
+        updates.append("sektion = %s"); vals.append((data.get("sektion") or "").strip() or None)
+    if "is_new" in data:
+        updates.append("is_new = %s"); vals.append(bool(data["is_new"]))
+    if not updates:
+        return jsonify({"ok": True})
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("UPDATE wines SET sektion = %s WHERE id = %s", (sektion, wine_id))
+    cursor.execute(f"UPDATE wines SET {', '.join(updates)} WHERE id = %s", (*vals, wine_id))
     conn.commit()
     cursor.close()
     conn.close()

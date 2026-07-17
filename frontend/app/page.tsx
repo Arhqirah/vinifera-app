@@ -6,7 +6,7 @@ import {
   Heart, PartyPopper, UtensilsCrossed, Grape, Droplets,
   ArrowRight, ChevronRight, Loader2, ExternalLink, RefreshCw,
   Briefcase, Users, TreePine, Cake, Star, Tv2, Snowflake, Globe,
-  Moon, Sun, X, SlidersHorizontal,
+  Moon, Sun, X, SlidersHorizontal, Share2,
   Fish, Beef, Leaf, Shell, Wheat,
   Milk, Rabbit, Soup,
 } from "lucide-react";
@@ -94,6 +94,11 @@ const T = {
     similarRef:         (name: string) => `Vine der minder om "${name}"`,
     similarNotFound:    "Vinen blev ikke fundet i sortimentet.",
     similarNotFoundSub: "Prøv et andet navn, eller brug navnesøgningen ovenfor.",
+    shareBtn:           "Del søgning",
+    shareCopied:        "Link kopieret!",
+    favTitle:           "Mine favoritter",
+    favEmpty:           "Du har ikke gemt nogen vine endnu. Klik ❤️ på en vin for at gemme den.",
+    newBadge:           "Ny",
   },
   en: {
     navLabel:          "Wine Finder",
@@ -174,6 +179,11 @@ const T = {
     similarRef:         (name: string) => `Wines similar to "${name}"`,
     similarNotFound:    "Wine not found in our selection.",
     similarNotFoundSub: "Try a different name, or use the name search above.",
+    shareBtn:           "Share search",
+    shareCopied:        "Link copied!",
+    favTitle:           "My favourites",
+    favEmpty:           "You haven't saved any wines yet. Click ❤️ on a wine to save it.",
+    newBadge:           "New",
   },
 } as const;
 
@@ -220,6 +230,7 @@ type WineItem = {
   description: string;
   reason: string | null;
   sektion: string | null;
+  is_new?: boolean;
   fruitiness: number | null;
   body: number | null;
   sweetness: number | null;
@@ -265,12 +276,51 @@ export default function VineFinderPage() {
   const [similarNotFound, setSimilarNotFound] = useState(false);
   const [similarError,    setSimilarError]    = useState<string | null>(null);
   const similarResultsRef = useRef<HTMLDivElement>(null);
+  const [favorites,  setFavorites]  = useState<WineItem[]>([]);
+  const [copied,     setCopied]     = useState(false);
+  const [autoSearch, setAutoSearch] = useState(false);
 
   useEffect(() => {
     if (searchCount > 0) {
       resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }, [searchCount]);
+
+  // Load favorites from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("vf_favs");
+      if (saved) setFavorites(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist favorites
+  useEffect(() => {
+    try { localStorage.setItem("vf_favs", JSON.stringify(favorites)); } catch { /* ignore */ }
+  }, [favorites]);
+
+  // Read share-link URL params on load and auto-search
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const occ   = params.get("occasion");
+    const type  = params.get("type");
+    const flav  = params.get("flavor");
+    const ctry  = params.get("country");
+    const price = params.get("price");
+    if (!occ && !type && !flav && !ctry && !price) return;
+    if (occ) { const i = T.da.occasions.findIndex(o => o.toLowerCase() === occ); if (i >= 0) setOccasionIdx(i); }
+    if (type)  setWineType(type);
+    if (flav)  { const i = T.da.flavors.findIndex(f => f.key === flav); if (i >= 0) setFlavorIdx(i); }
+    if (ctry)  setCountry(ctry);
+    if (price) setMaxPrice(price);
+    setAutoSearch(true);
+  }, []);
+
+  // Trigger search after URL params have been applied
+  useEffect(() => {
+    if (autoSearch) { setAutoSearch(false); fetchWines(); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSearch]);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/countries`)
@@ -351,6 +401,24 @@ export default function VineFinderPage() {
 
   const handleSearch   = () => fetchWines([], false);
   const handleLoadMore = () => fetchWines(picks.map((w) => w.id), true);
+
+  function toggleFavorite(wine: WineItem) {
+    setFavorites(prev =>
+      prev.some(f => f.id === wine.id) ? prev.filter(f => f.id !== wine.id) : [...prev, wine]
+    );
+  }
+
+  function copyShareLink() {
+    const params = new URLSearchParams();
+    params.set("occasion", T.da.occasions[occasionIdx].toLowerCase());
+    if (wineType) params.set("type", wineType);
+    params.set("flavor", T.da.flavors[flavorIdx].key);
+    if (country)  params.set("country", country);
+    if (maxPrice) params.set("price", maxPrice);
+    navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?${params}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
 
   async function handleSimilarSearch() {
     if (!similarName.trim()) return;
@@ -656,16 +724,21 @@ export default function VineFinderPage() {
             {!loading && picks.length > 0 && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0 }}>{t.resultsCount(picks.length)}</h2>
-                <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                  <RefreshCw size={13} />{t.searchAgain}
-                </button>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button onClick={copyShareLink} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 5, background: "none", border: "none", color: copied ? "#2d6a4f" : "var(--text-mid)", fontSize: 13, fontWeight: copied ? 700 : 500, cursor: "pointer" }}>
+                    <Share2 size={13} />{copied ? t.shareCopied : t.shareBtn}
+                  </button>
+                  <button onClick={handleSearch} className="reset-btn" style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "var(--text-mid)", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                    <RefreshCw size={13} />{t.searchAgain}
+                  </button>
+                </div>
               </div>
             )}
 
             {!loading && (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 {picks.map((wine, i) => (
-                  <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
+                  <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} isFav={favorites.some(f => f.id === wine.id)} onToggleFav={toggleFavorite} />
                 ))}
               </div>
             )}
@@ -737,7 +810,7 @@ export default function VineFinderPage() {
                 <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 16 }}>{t.similarRef(similarRefTitle)}</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {similarPicks.map((wine, i) => (
-                    <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} />
+                    <WineCard key={wine.id} wine={wine} rank={i + 1} t={t} isFav={favorites.some(f => f.id === wine.id)} onToggleFav={toggleFavorite} />
                   ))}
                 </div>
               </>
@@ -745,6 +818,20 @@ export default function VineFinderPage() {
             {!similarLoading && similarError && (
               <p style={{ color: "#C0392B", fontSize: 14, fontWeight: 500 }}>{similarError}</p>
             )}
+          </div>
+        )}
+
+        {/* Favourites section */}
+        {favorites.length > 0 && (
+          <div style={{ marginBottom: 48 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+              <Heart size={17} fill="#e63946" color="#e63946" />{t.favTitle} ({favorites.length})
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {favorites.map((wine) => (
+                <WineCard key={wine.id} wine={wine} t={t} isFav={true} onToggleFav={toggleFavorite} />
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -981,7 +1068,7 @@ function StoreMap({ sektion }: { sektion: string }) {
   );
 }
 
-function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translations }) {
+function WineCard({ wine, rank, t, isFav, onToggleFav }: { wine: WineItem; rank?: number; t: Translations; isFav?: boolean; onToggleFav?: (w: WineItem) => void }) {
   const [expanded, setExpanded] = useState(false);
   const [showMap,  setShowMap]  = useState(false);
   const CUTOFF = 240;
@@ -1001,7 +1088,10 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
         <div style={{ flex: 1, padding: "18px 18px 14px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 4 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1, fontFamily: "var(--font-heading)", letterSpacing: 0.1 }}>{wine.title}</h3>
+              <div style={{ flex: 1, display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3, fontFamily: "var(--font-heading)", letterSpacing: 0.1 }}>{wine.title}</h3>
+                {wine.is_new && <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 800, color: "#fff", backgroundColor: "#d97706", borderRadius: 4, padding: "3px 6px", letterSpacing: 0.5, marginTop: 3 }}>{t.newBadge}</span>}
+              </div>
               <span style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap" }}>{wine.price_dkk} kr</span>
             </div>
             <p style={{ fontSize: 12, color: "var(--text-mid)", fontWeight: 500, margin: "0 0 8px", lineHeight: 1.4 }}>
@@ -1028,6 +1118,11 @@ function WineCard({ wine, rank, t }: { wine: WineItem; rank: number; t: Translat
             <a href={wine.product_url} target="_blank" rel="noreferrer" className="buy-btn" style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, color: "var(--text)", textDecoration: "none", backgroundColor: "var(--buy-btn-bg)", border: "1px solid var(--border)", borderRadius: 100, padding: "6px 14px" }}>
               <ExternalLink size={12} />{t.buyBtn}
             </a>
+            {onToggleFav && (
+              <button onClick={() => onToggleFav(wine)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: isFav ? "#e63946" : "var(--text-mid)" }}>
+                <Heart size={18} fill={isFav ? "#e63946" : "none"} />
+              </button>
+            )}
           </div>
         </div>
       </div>
