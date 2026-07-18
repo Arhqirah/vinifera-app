@@ -172,27 +172,50 @@ except Exception:
 
 @app.route("/api/wines", methods=["GET"])
 def list_wines():
-    """Raw filtered search, no AI — useful for testing the DB independently."""
     wine_type = request.args.get("wine_type")
     max_price = request.args.get("max_price", type=float)
-
-    query = "SELECT * FROM wines WHERE in_stock = TRUE"
-    params = []
-    if wine_type:
-        query += " AND wine_type = %s"
-        params.append(wine_type)
-    if max_price:
-        query += " AND price_dkk <= %s"
-        params.append(max_price)
-    query += " LIMIT 50"
+    country   = request.args.get("country")
+    page      = max(1, int(request.args.get("page", 1)))
+    per_page  = 24
+    offset    = (page - 1) * per_page
 
     conn = get_db()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(query, params)
-    results = cursor.fetchall()
-    cursor.close()
+
+    where  = ["in_stock = TRUE"]
+    params = []
+
+    if country:
+        raw = raw_countries_for(conn, country)
+        if raw:
+            where.append(f"country IN ({','.join(['%s']*len(raw))})")
+            params.extend(raw)
+        else:
+            where.append("country = %s")
+            params.append(country)
+    if wine_type:
+        where.append("wine_type = %s")
+        params.append(wine_type)
+    if max_price:
+        where.append("price_dkk <= %s")
+        params.append(max_price)
+
+    where_sql = "WHERE " + " AND ".join(where)
+
+    count_cur = conn.cursor()
+    count_cur.execute(f"SELECT COUNT(*) FROM wines {where_sql}", params)
+    total = count_cur.fetchone()[0]
+    count_cur.close()
+
+    cur = conn.cursor(dictionary=True)
+    cur.execute(
+        f"SELECT id, title, producer, country, wine_type, price_dkk, image_url, product_url, sektion, COALESCE(is_new, 0) as is_new FROM wines {where_sql} ORDER BY wine_type, title LIMIT %s OFFSET %s",
+        params + [per_page, offset]
+    )
+    wines = cur.fetchall()
+    cur.close()
     conn.close()
-    return jsonify(results)
+
+    return jsonify({"wines": wines, "total": total, "page": page, "per_page": per_page})
 
 
 @app.route("/api/countries", methods=["GET"])

@@ -476,9 +476,9 @@ export default function VineFinderPage() {
             <span style={{ color: "var(--nav-text)", fontSize: 13, fontWeight: 700, letterSpacing: 4, textTransform: "uppercase" }}>VinFinder</span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span className="nav-label" style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase" }}>
-              {t.navLabel}
-            </span>
+            <a href="/lande" className="nav-label" style={{ color: "var(--nav-mid)", fontSize: 12, fontWeight: 500, letterSpacing: 1.5, textTransform: "uppercase", textDecoration: "none" }}>
+              Vine efter land
+            </a>
             <button
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
               className="nav-icon-btn"
