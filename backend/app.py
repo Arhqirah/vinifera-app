@@ -603,7 +603,8 @@ def admin_list_wines():
     search = request.args.get("q", "").strip()
     sektion = request.args.get("sektion", "").strip()
 
-    query = "SELECT id, title, producer, wine_type, country, price_dkk, sektion, COALESCE(is_new, 0) as is_new FROM wines WHERE 1=1"
+    wine_type_filter = request.args.get("wine_type_filter", "").strip()
+    query = "SELECT id, title, producer, wine_type, country, price_dkk, sektion, COALESCE(is_new, 0) as is_new, sweetness, fruitiness, body, acidity, tannin FROM wines WHERE 1=1"
     params = []
     if search:
         query += " AND (title LIKE %s OR producer LIKE %s)"
@@ -614,7 +615,13 @@ def admin_list_wines():
     elif sektion:
         query += " AND sektion = %s"
         params.append(sektion)
-    query += " ORDER BY sektion IS NULL DESC, sektion, title LIMIT 200"
+    if wine_type_filter:
+        if wine_type_filter == "Mousserende":
+            query += " AND wine_type IN ('Mousserende', 'Champagne', 'Doux')"
+        else:
+            query += " AND wine_type = %s"
+            params.append(wine_type_filter)
+    query += " ORDER BY sektion IS NULL DESC, sektion, title LIMIT 300"
 
     conn = get_db()
     cursor = conn.cursor(dictionary=True)
@@ -637,6 +644,10 @@ def admin_update_sektion(wine_id):
         updates.append("sektion = %s"); vals.append((data.get("sektion") or "").strip() or None)
     if "is_new" in data:
         updates.append("is_new = %s"); vals.append(bool(data["is_new"]))
+    for col in ("sweetness", "fruitiness", "body", "acidity", "tannin"):
+        if col in data:
+            v = data[col]
+            updates.append(f"{col} = %s"); vals.append(int(v) if v not in (None, "") else None)
     if not updates:
         return jsonify({"ok": True})
     conn = get_db()
