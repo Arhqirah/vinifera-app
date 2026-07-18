@@ -251,6 +251,10 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
         """
         params = []
 
+        # Always exclude alcohol-free wines unless the user specifically asked for them
+        if wine_type != "Alkoholfri":
+            query += " AND w.wine_type NOT IN ('Alkoholfri', 'Alkoholreduceret', 'Alkoholfri vin')"
+
         is_food_pairing = occasion and occasion.lower() in FOOD_PAIRING_MAP
         if not skip_occasion_tag:
             if is_food_pairing and (not wine_type or skip_wine_type):
@@ -289,16 +293,19 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
             params.extend(exclude_ids)
 
         column, direction = FLAVOR_TO_COLUMN.get((flavor or "frugtig").lower(), ("fruitiness", "desc"))
-        query += f" ORDER BY w.{column} {direction.upper()} LIMIT 8"
+        # COALESCE so wines with NULL scores still appear rather than being silently excluded
+        query += f" ORDER BY COALESCE(w.{column}, -1) {direction.upper()} LIMIT 12"
         cursor.execute(query, params)
         return cursor.fetchall()
 
-    # Progressive fallback: relax filters until we get results
+    # Progressive fallback: relax filters until we get results.
+    # Never drop wine_type when the user explicitly selected one — that prevents
+    # alcohol-free wines sneaking in when searching for e.g. "sød champagne".
     results = (
         _run() or
         _run(skip_occasion_tag=True) or
         _run(skip_occasion_tag=True, skip_country=True) or
-        _run(skip_occasion_tag=True, skip_wine_type=True, skip_country=True)
+        _run(skip_occasion_tag=True, skip_wine_type=(not wine_type), skip_country=True)
     )
 
     cursor.close()
