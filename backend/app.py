@@ -170,12 +170,38 @@ except Exception:
     pass
 
 # Data fix: set wine_type = 'Champagne' for wines whose title contains "Champagne"
-# but have wine_type = NULL (e.g. Champagne Mandois imported without type)
+# but have wine_type = NULL — only for wines that have a country (accessories don't).
 try:
     _c = get_db(); _cur = _c.cursor()
     _cur.execute(
         "UPDATE wines SET wine_type = 'Champagne' "
-        "WHERE wine_type IS NULL AND title LIKE '%Champagne%'"
+        "WHERE wine_type IS NULL AND title LIKE '%Champagne%' AND country IS NOT NULL"
+    )
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
+# Data fix: revert accessories that were incorrectly given wine_type='Champagne'
+# because their title contains "Champagne" but they are not wine products.
+try:
+    _c = get_db(); _cur = _c.cursor()
+    _cur.execute(
+        "UPDATE wines SET wine_type = NULL "
+        "WHERE wine_type = 'Champagne' AND country IS NULL "
+        "AND (title LIKE '%stopper%' OR title LIKE '%Stopper%' OR title LIKE '%prop%' "
+        "     OR title LIKE '%Prop%' OR title LIKE '%karton%' OR title LIKE '%2-pack%' "
+        "     OR title LIKE '%Gavekarton%' OR title LIKE '%Veloce%')"
+    )
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
+# Data fix: set country='Frankrig' for Champagne wines missing a country
+try:
+    _c = get_db(); _cur = _c.cursor()
+    _cur.execute(
+        "UPDATE wines SET country = 'Frankrig' "
+        "WHERE wine_type = 'Champagne' AND country IS NULL"
     )
     _c.commit(); _cur.close(); _c.close()
 except Exception:
@@ -274,6 +300,7 @@ def fetch_candidates(occasion: str, flavor: str, wine_type: str | None, max_pric
             WHERE w.in_stock = TRUE
               AND w.wine_type IS NOT NULL
               AND w.wine_type NOT IN ('Øl & vand')
+              AND w.country IS NOT NULL
         """
         params = []
 
