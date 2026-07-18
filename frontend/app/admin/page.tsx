@@ -38,10 +38,31 @@ const SCORE_FIELDS: { key: ScoreField; label: string }[] = [
   { key: "tannin",     label: "Tannin" },
 ];
 
-type Tab = "sektion" | "scores";
+type QualityIssue = {
+  id: number;
+  title: string;
+  wine_type: string | null;
+  country: string | null;
+  in_stock: boolean;
+  issue: string;
+  label: string;
+};
+
+const ISSUE_META: Record<string, { emoji: string; heading: string; fix: string }> = {
+  nonalc_wrong_type:   { emoji: "🧃", heading: "Alkoholfri med forkert wine_type",   fix: "Sæt til Alkoholfri vin" },
+  accessory_with_type: { emoji: "🔧", heading: "Tilbehør med wine_type sat",          fix: "Fjern wine_type" },
+  missing_wine_type:   { emoji: "❓", heading: "Mangler wine_type (ude af søgning)",  fix: "Sæt wine_type" },
+  missing_country:     { emoji: "🌍", heading: "Mangler land (ude af søgning)",       fix: "Sæt land" },
+};
+
+type Tab = "sektion" | "scores" | "quality";
 
 export default function AdminPage() {
   const [tab,           setTab]           = useState<Tab>("sektion");
+  const [quality,       setQuality]       = useState<Record<string, QualityIssue[]>>({});
+  const [qualityTotal,  setQualityTotal]  = useState(0);
+  const [qualityLoading,setQualityLoading]= useState(false);
+  const [fixing,        setFixing]        = useState<Record<number, boolean>>({});
   const [wines,         setWines]         = useState<Wine[]>([]);
   const [sektioner,     setSektioner]     = useState<string[]>([]);
   const [search,        setSearch]        = useState("");
@@ -51,6 +72,34 @@ export default function AdminPage() {
   const [saving,        setSaving]        = useState<Record<number, boolean>>({});
   const [edited,        setEdited]        = useState<Record<number, string>>({});
   const [editedScores,  setEditedScores]  = useState<Record<number, Partial<Record<ScoreField, string>>>>({});
+
+  async function fetchQuality() {
+    setQualityLoading(true);
+    const res = await fetch(`${API}/api/admin/quality`);
+    const data = await res.json();
+    setQuality(data.by_type ?? {});
+    setQualityTotal(data.total ?? 0);
+    setQualityLoading(false);
+  }
+
+  useEffect(() => { if (tab === "quality") fetchQuality(); }, [tab]);
+
+  async function quickFix(issue: QualityIssue, patch: Record<string, string | null>) {
+    setFixing(f => ({ ...f, [issue.id]: true }));
+    await fetch(`${API}/api/admin/wines/${issue.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    // Remove fixed issue from list
+    setQuality(prev => {
+      const next = { ...prev };
+      next[issue.issue] = (next[issue.issue] ?? []).filter(i => i.id !== issue.id);
+      return next;
+    });
+    setQualityTotal(t => t - 1);
+    setFixing(f => ({ ...f, [issue.id]: false }));
+  }
 
   const fetchWines = useCallback(async () => {
     setLoading(true);
@@ -137,7 +186,11 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 24, borderBottom: "2px solid #eee" }}>
-        {([["sektion", "📍 Sektion-editor"], ["scores", "⭐ Smagsscorer"]] as [Tab, string][]).map(([t, lbl]) => (
+        {([
+        ["sektion", "📍 Sektion-editor"],
+        ["scores",  "⭐ Smagsscorer"],
+        ["quality", `🔍 Datakvalitet${qualityTotal > 0 ? ` (${qualityTotal})` : ""}`],
+      ] as [Tab, string][]).map(([t, lbl]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: "8px 18px", border: "none", background: "none", cursor: "pointer",
             fontSize: 14, fontWeight: tab === t ? 700 : 500,
@@ -253,6 +306,83 @@ export default function AdminPage() {
                 })}
               </tbody>
             </table>
+          )}
+
+          {/* ── QUALITY TAB ── */}
+          {tab === "quality" && (
+            qualityLoading ? <p style={{ color: "#888" }}>Tjekker vine...</p> : (
+              qualityTotal === 0 ? (
+                <div style={{ textAlign: "center", padding: "48px 0" }}>
+                  <p style={{ fontSize: 20 }}>✅</p>
+                  <p style={{ fontSize: 15, fontWeight: 600 }}>Ingen problemer fundet</p>
+                  <p style={{ fontSize: 13, color: "#888" }}>Alle vine ser korrekt klassificerede ud.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+                  {Object.entries(ISSUE_META).map(([key, meta]) => {
+                    const rows = quality[key] ?? [];
+                    if (!rows.length) return null;
+                    return (
+                      <div key={key}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                          <span style={{ fontSize: 18 }}>{meta.emoji}</span>
+                          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>{meta.heading}</h3>
+                          <span style={{ fontSize: 12, color: "#888", background: "#f0f0f0", borderRadius: 10, padding: "2px 8px" }}>{rows.length}</span>
+                        </div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ borderBottom: "2px solid #eee", textAlign: "left" }}>
+                              <th style={{ padding: "8px", color: "#555", width: "40%" }}>Vin</th>
+                              <th style={{ padding: "8px", color: "#555", width: "18%" }}>Wine type</th>
+                              <th style={{ padding: "8px", color: "#555", width: "12%" }}>Land</th>
+                              <th style={{ padding: "8px", color: "#555", width: "20%" }}>Problem</th>
+                              <th style={{ padding: "8px", width: "10%" }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map(issue => (
+                              <tr key={issue.id} style={{ borderBottom: "1px solid #f0f0f0", background: "#fff9f0" }}>
+                                <td style={{ padding: "8px", fontWeight: 600 }}>{issue.title}</td>
+                                <td style={{ padding: "8px", color: issue.wine_type ? "#333" : "#e53", fontStyle: issue.wine_type ? "normal" : "italic" }}>
+                                  {issue.wine_type ?? "— mangler —"}
+                                </td>
+                                <td style={{ padding: "8px", color: issue.country ? "#333" : "#e53" }}>
+                                  {issue.country ?? "— mangler —"}
+                                </td>
+                                <td style={{ padding: "8px", fontSize: 12, color: "#888" }}>{issue.label}</td>
+                                <td style={{ padding: "8px" }}>
+                                  <button
+                                    disabled={fixing[issue.id]}
+                                    onClick={() => {
+                                      if (key === "nonalc_wrong_type")   quickFix(issue, { wine_type: "Alkoholfri vin" });
+                                      if (key === "accessory_with_type") quickFix(issue, { wine_type: null });
+                                    }}
+                                    style={{
+                                      padding: "5px 10px", fontSize: 12, borderRadius: 6,
+                                      background: (key === "missing_wine_type" || key === "missing_country") ? "#eee" : "#1a1a1a",
+                                      color: (key === "missing_wine_type" || key === "missing_country") ? "#888" : "#fff",
+                                      border: "none", cursor: (key === "missing_wine_type" || key === "missing_country") ? "default" : "pointer",
+                                      opacity: fixing[issue.id] ? 0.5 : 1,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {fixing[issue.id] ? "..." :
+                                      key === "missing_wine_type" || key === "missing_country"
+                                        ? "Ret i Sektion-tab"
+                                        : meta.fix
+                                    }
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
+            )
           )}
 
           {/* ── SCORES TAB ── */}

@@ -651,6 +651,85 @@ def find_similar():
 
 
 
+SPIRITS = ('Gin','Whisky','Rom','Vodka','Cognac','Calvados','Armagnac','Grappa',
+           'Tequila','Likør','Pastis / Ouzo','Bitter','Anden spiritus','Aperitif','Snaps')
+
+ACCESSORY_KEYWORDS = [
+    '%stopper%','%Stopper%','%prop%','%Prop%','%karton%','%Karton%',
+    '%capsule%','%Capsule%','%kapsul%','%Gas %','%-pack%','% pack%',
+    '%vingummi%','%Vingummi%','%Riedel%','%coravin%','%Coravin%',
+    '%Veloce%','%gaveæske%','%Gaveæske%','%Posestativ%',
+]
+
+@app.route("/api/admin/quality", methods=["GET"])
+def admin_quality():
+    conn = get_db()
+    cur  = conn.cursor(dictionary=True)
+    issues = []
+
+    def add(rows, issue_key, label_fn):
+        for w in rows:
+            issues.append({
+                "id": w["id"], "title": w["title"],
+                "wine_type": w.get("wine_type"), "country": w.get("country"),
+                "in_stock": bool(w.get("in_stock")),
+                "issue": issue_key, "label": label_fn(w),
+            })
+
+    # 1. Non-alcoholic wines classified as regular wine types
+    cur.execute("""
+        SELECT id, title, wine_type, country, in_stock FROM wines
+        WHERE (title LIKE '%Non Alcoholic%' OR title LIKE '%Non-Alcoholic%'
+               OR title LIKE '%0,0%%' OR title LIKE '%Alkoholfri%')
+          AND wine_type NOT IN ('Alkoholfri','Alkoholfri vin','Alkoholreduceret')
+          AND wine_type IS NOT NULL
+        ORDER BY title
+    """)
+    add(cur.fetchall(), "nonalc_wrong_type",
+        lambda w: f"Alkoholfri men klassificeret som '{w['wine_type']}'")
+
+    # 2. Likely accessories (keywords) with a wine_type set → appear in search
+    acc_cond = " OR ".join([f"title LIKE '{kw}'" for kw in ACCESSORY_KEYWORDS])
+    cur.execute(f"""
+        SELECT id, title, wine_type, country, in_stock FROM wines
+        WHERE ({acc_cond}) AND wine_type IS NOT NULL
+        ORDER BY title
+    """)
+    add(cur.fetchall(), "accessory_with_type",
+        lambda w: f"Tilbehør/ikke-vin med wine_type='{w['wine_type']}'")
+
+    # 3. In-stock wines with missing wine_type (excluded from all recommendations)
+    cur.execute("""
+        SELECT id, title, wine_type, country, in_stock FROM wines
+        WHERE in_stock = TRUE AND wine_type IS NULL AND country IS NOT NULL
+        ORDER BY title LIMIT 200
+    """)
+    add(cur.fetchall(), "missing_wine_type",
+        lambda w: "Mangler wine_type — ekskluderes fra anbefalinger")
+
+    # 4. In-stock wine-category products missing country (excluded by country IS NOT NULL rule)
+    spirits_list = ", ".join([f"'{s}'" for s in SPIRITS])
+    cur.execute(f"""
+        SELECT id, title, wine_type, country, in_stock FROM wines
+        WHERE in_stock = TRUE AND country IS NULL AND wine_type IS NOT NULL
+          AND wine_type NOT IN ({spirits_list})
+          AND wine_type NOT IN ('Alkoholfri','Alkoholfri vin','Alkoholreduceret','Øl & vand')
+        ORDER BY title LIMIT 200
+    """)
+    add(cur.fetchall(), "missing_country",
+        lambda w: f"Mangler land — ekskluderes fra anbefalinger (wine_type='{w['wine_type']}')")
+
+    cur.close()
+    conn.close()
+
+    # Group by issue type for the frontend
+    by_type: dict = {}
+    for iss in issues:
+        by_type.setdefault(iss["issue"], []).append(iss)
+
+    return jsonify({"issues": issues, "by_type": by_type, "total": len(issues)})
+
+
 @app.route("/api/admin/wines", methods=["GET"])
 def admin_list_wines():
     search = request.args.get("q", "").strip()
