@@ -169,6 +169,18 @@ try:
 except Exception:
     pass
 
+# Data fix: set wine_type = 'Champagne' for wines whose title contains "Champagne"
+# but have wine_type = NULL (e.g. Champagne Mandois imported without type)
+try:
+    _c = get_db(); _cur = _c.cursor()
+    _cur.execute(
+        "UPDATE wines SET wine_type = 'Champagne' "
+        "WHERE wine_type IS NULL AND title LIKE '%Champagne%'"
+    )
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
 
 @app.route("/api/wines", methods=["GET"])
 def list_wines():
@@ -644,6 +656,8 @@ def admin_update_sektion(wine_id):
         updates.append("sektion = %s"); vals.append((data.get("sektion") or "").strip() or None)
     if "is_new" in data:
         updates.append("is_new = %s"); vals.append(bool(data["is_new"]))
+    if "wine_type" in data:
+        updates.append("wine_type = %s"); vals.append(data["wine_type"] or None)
     for col in ("sweetness", "fruitiness", "body", "acidity", "tannin"):
         if col in data:
             v = data[col]

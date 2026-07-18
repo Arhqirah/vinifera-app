@@ -86,9 +86,11 @@ export default function AdminPage() {
     const changes = editedScores[wine.id] ?? {};
     if (!Object.keys(changes).length) return;
     setSaving(s => ({ ...s, [wine.id]: true }));
-    const body: Record<string, number | null> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body: Record<string, any> = {};
     for (const [k, v] of Object.entries(changes)) {
-      body[k] = v === "" ? null : parseInt(v);
+      if (k === "wine_type") { body[k] = v || null; }
+      else { body[k] = v === "" ? null : parseInt(v); }
     }
     await fetch(`${API}/api/admin/wines/${wine.id}`, {
       method: "PATCH",
@@ -262,10 +264,10 @@ export default function AdminPage() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                 <thead>
                   <tr style={{ borderBottom: "2px solid #eee", textAlign: "left" }}>
-                    <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "30%" }}>Vin</th>
-                    <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "10%" }}>Type</th>
+                    <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "28%" }}>Vin</th>
+                    <th style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "14%" }}>Type</th>
                     {SCORE_FIELDS.map(f => (
-                      <th key={f.key} style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "9%", textAlign: "center" }}>{f.label}</th>
+                      <th key={f.key} style={{ padding: "10px 8px", fontWeight: 600, color: "#555", width: "8%", textAlign: "center" }}>{f.label}</th>
                     ))}
                     <th style={{ padding: "10px 8px", width: "8%" }}></th>
                   </tr>
@@ -273,13 +275,31 @@ export default function AdminPage() {
                 <tbody>
                   {wines.map(wine => {
                     const hasEdits = !!editedScores[wine.id] && Object.keys(editedScores[wine.id]).length > 0;
+                    const editedType = (editedScores[wine.id] as Record<string, string> | undefined)?.wine_type;
+                    const currentType = editedType !== undefined ? editedType : (wine.wine_type ?? "");
+                    const typeEdited = editedType !== undefined;
                     return (
-                      <tr key={wine.id} style={{ borderBottom: "1px solid #f0f0f0", background: hasEdits ? "#fffbf0" : "transparent" }}>
+                      <tr key={wine.id} style={{ borderBottom: "1px solid #f0f0f0", background: hasEdits ? "#fffbf0" : wine.wine_type ? "transparent" : "#fff5f5" }}>
                         <td style={{ padding: "10px 8px" }}>
                           <div style={{ fontWeight: 600, lineHeight: 1.3 }}>{wine.title}</div>
                           {wine.producer && <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{wine.producer}</div>}
                         </td>
-                        <td style={{ padding: "10px 8px", color: "#555", fontSize: 12 }}>{wine.wine_type ?? "—"}</td>
+                        <td style={{ padding: "6px 8px" }}>
+                          <select
+                            value={currentType}
+                            onChange={e => setEditedScores(prev => ({ ...prev, [wine.id]: { ...(prev[wine.id] ?? {}), wine_type: e.target.value } }))}
+                            style={{
+                              width: "100%", padding: "4px 6px", borderRadius: 6, fontSize: 12,
+                              border: `1px solid ${typeEdited ? "#f5a623" : wine.wine_type ? "#ddd" : "#e53"}`,
+                              background: typeEdited ? "#fffbf0" : wine.wine_type ? "#fff" : "#fff0f0",
+                            }}
+                          >
+                            <option value="">— mangler —</option>
+                            {["Rødvin","Hvidvin","Rosévin","Mousserende","Champagne","Doux","Portvin","Dessertvin","Sherry","Hedvin","Cognac","Calvados","Snaps","Rom","Vodka","Armagnac","Grappa","Tequila","Likør","Gin","Whisky","Aperitif","Alkoholfri","Alkoholreduceret"].map(t => (
+                              <option key={t} value={t}>{t}</option>
+                            ))}
+                          </select>
+                        </td>
                         {SCORE_FIELDS.map(f => (
                           <td key={f.key} style={{ padding: "6px 8px", textAlign: "center" }}>
                             <select
