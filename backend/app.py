@@ -181,6 +181,20 @@ try:
 except Exception:
     pass
 
+# Data fix: non-alcoholic wines (title contains "Non Alcoholic" / "Alkoholfri")
+# were incorrectly classified as 'Mousserende' — reclassify them so they never
+# appear in sparkling wine recommendations.
+try:
+    _c = get_db(); _cur = _c.cursor()
+    _cur.execute(
+        "UPDATE wines SET wine_type = 'Alkoholfri vin' "
+        "WHERE (title LIKE '%Non Alcoholic%' OR title LIKE '%Non-Alcoholic%' OR title LIKE '%0,0%%') "
+        "AND wine_type IN ('Mousserende', 'Champagne', 'Rødvin', 'Hvidvin', 'Rosévin')"
+    )
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
 
 @app.route("/api/wines", methods=["GET"])
 def list_wines():
