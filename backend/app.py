@@ -207,6 +207,48 @@ try:
 except Exception:
     pass
 
+# ── Auto-detect wine_type from title keywords for imported wines with NULL type ──
+# These run in priority order (most specific first).
+_TYPE_RULES = [
+    # Sparkling — very specific product names
+    ("Mousserende", "(title LIKE '%Prosecco%' OR title LIKE '%Cava %' OR title LIKE '%Spumante%' "
+                    " OR title LIKE '%Crémant%' OR title LIKE '%Cremant%')"),
+    # Rosé — must have accented Rosé or clear 'Rose' as wine descriptor
+    ("Rosévin",  "(title LIKE '%Rosé%' OR title LIKE '% Rose %' OR title LIKE '% Rose,%' "
+                    " OR title LIKE '% Rose AOP%' OR title LIKE '% Rosé,%')"),
+    # Red wine keywords
+    ("Rødvin",   "(title LIKE '% Rouge%' OR title LIKE '%Pinot Noir%' OR title LIKE '%Cabernet%' "
+                    " OR title LIKE '%Merlot%' OR title LIKE '%Syrah%' OR title LIKE '% Nero%' "
+                    " OR title LIKE '%Malbec%' OR title LIKE '%Brunello%' OR title LIKE '%Barolo%' "
+                    " OR title LIKE '%Rioja Crianza%' OR title LIKE '% Grenache%' "
+                    " OR title LIKE '%Sangiovese%' OR title LIKE '%Zweigelt%' "
+                    " OR title LIKE '%Nebbiolo%' OR title LIKE '%Barbera%')"),
+    # White wine keywords
+    ("Hvidvin",    "(title LIKE '%Chardonnay%' OR title LIKE '%Sauvignon Blanc%' "
+                    " OR title LIKE '%Riesling%' OR title LIKE '%Verdejo%' OR title LIKE '%Chablis%' "
+                    " OR title LIKE '%Viognier%' OR title LIKE '%Picpoul%' OR title LIKE '%Meursault%' "
+                    " OR title LIKE '%Blanc de%' OR title LIKE '% Blanc%' OR title LIKE '%Gewurztraminer%' "
+                    " OR title LIKE '%Entre-Deux-Mers%' OR title LIKE '%Entre Deux Mers%')"),
+    # Spirits / liqueurs
+    ("Vermøuth","title LIKE '%vermouth%'"),
+    ("Likør",   "(title LIKE '%Liqueur%' OR title LIKE '%Amaretto%' OR title LIKE '%Limoncello%' "
+                    " OR title LIKE '%Likør%')"),
+    ("Rom",        "title LIKE '%Rhum%'"),
+]
+try:
+    _c = get_db(); _cur = _c.cursor()
+    for _wt, _cond in _TYPE_RULES:
+        _cur.execute(
+            f"UPDATE wines SET wine_type = %s "
+            f"WHERE wine_type IS NULL AND country IS NOT NULL "
+            f"AND title NOT LIKE '%Non Alcoholic%' AND title NOT LIKE '%Alkoholfri%' "
+            f"AND ({_cond})",
+            (_wt,)
+        )
+    _c.commit(); _cur.close(); _c.close()
+except Exception:
+    pass
+
 # Data fix: non-alcoholic wines (title contains "Non Alcoholic" / "Alkoholfri")
 # were incorrectly classified as 'Mousserende' — reclassify them so they never
 # appear in sparkling wine recommendations.
